@@ -1,0 +1,18 @@
+{
+  "name": "Jacked Buddha OS",
+  "short_name": "Jacked Buddha",
+  "description": "Elite Personal Operating System & Council for Melchi",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#09090E",
+  "theme_color": "#09090E",
+  "icons": [
+    {
+      "src": "/src/assets/images/apple_touch_icon_1784446544674.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

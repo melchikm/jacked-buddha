@@ -1,0 +1,6 @@
+{
+  "name": "Jacked Buddha",
+  "description": "Strong Body. Calm Mind. Build Your Future. An AI Personal Operating System and Council for Melchi.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
