@@ -27,7 +27,7 @@ export default function TravelChroniclesView({ metrics, onUpdateMetrics, theme, 
   const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
     {
       sender: "ai",
-      text: "Greetings, Melchi. I am your Travel Cartographer. I design routes for absolute mental decompression. Let us curate your upcoming August mountain escape and plan high-altitude motorcycle circuits that expand your sensory consciousness."
+      text: "Greetings. I am your Travel Cartographer. I design routes for absolute mental decompression. Let us curate your upcoming August mountain escape and plan high-altitude motorcycle circuits that expand your sensory consciousness."
     }
   ]);
   const [isSaving, setIsSaving] = useState(false);
@@ -163,7 +163,7 @@ export default function TravelChroniclesView({ metrics, onUpdateMetrics, theme, 
         body: JSON.stringify({
           type: "travel",
           title: "Sovereign GPS Coordinates Logged",
-          detail: `Logged Melchi's precise operational location coordinates: ${coordinateString}.${locationDetails}. Spatial telemetry recorded inside Cloud Pilgrim.`
+          detail: `Logged precise operational location coordinates: ${coordinateString}.${locationDetails}. Spatial telemetry recorded inside Cloud Pilgrim.`
         })
       });
       const data = await response.json();
@@ -273,7 +273,7 @@ export default function TravelChroniclesView({ metrics, onUpdateMetrics, theme, 
         const aiResponse = data.responses[0].message;
         setChatHistory((prev) => [...prev, { sender: "ai", text: aiResponse }]);
       } else {
-        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies, Melchi. My cartographic circuits are updating. Let's design a high-altitude motorbike escape to still your mind." }]);
+        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies. My cartographic circuits are updating. Let's design a high-altitude motorbike escape to still your mind." }]);
       }
     } catch (err) {
       setChatHistory((prev) => [...prev, { sender: "ai", text: "Connection error. Local navigation unit suggests planning your August gear list for maximum environmental insulation." }]);
@@ -616,7 +616,7 @@ export default function TravelChroniclesView({ metrics, onUpdateMetrics, theme, 
               {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                   <span className="text-[9px] font-mono text-slate-500 uppercase mb-0.5">
-                    {msg.sender === "user" ? "Melchi" : "Travel Specialist"}
+                    {msg.sender === "user" ? "You" : "Travel Specialist"}
                   </span>
                   <div className={`p-3 rounded-2xl text-xs max-w-[90%] leading-relaxed ${
                     msg.sender === "user"

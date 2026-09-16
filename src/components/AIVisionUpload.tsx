@@ -30,7 +30,7 @@ export default function AIVisionUpload({ onAnalyzeComplete, theme, mode }: AIVis
     nutrition: {
       placeholder: "Scan a meal or product nutrition label...",
       suggestedPrompts: [
-        { label: "Estimate Macros (Protein)", text: "Estimate the calories, protein, carbs, and fats in this food. Is this high-protein and safe for Melchi's 180g target?" },
+        { label: "Estimate Macros (Protein)", text: "Estimate the calories, protein, carbs, and fats in this food. Is this high-protein and aligned with my daily target?" },
         { label: "Scan Nutrition Label", text: "Extract the nutrition table and highlight if there are any risks or excellent benefits." }
       ]
     },

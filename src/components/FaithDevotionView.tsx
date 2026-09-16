@@ -16,7 +16,7 @@ export default function FaithDevotionView({ metrics, onUpdateMetrics, theme }: F
   const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
     {
       sender: "ai",
-      text: "Greetings, Melchi. I am the voice of your Dharma Core. Faith (Saddha) and Devotion are not blind attachments, but an unwavering anchor in the ultimate truth of impermanence and noble awareness. Let us cultivate a mind as vast as space."
+      text: "Greetings. I am the voice of your Dharma Core. Faith (Saddha) and Devotion are not blind attachments, but an unwavering anchor in the ultimate truth of impermanence and noble awareness. Let us cultivate a mind as vast as space."
     }
   ]);
   const [isSaving, setIsSaving] = useState(false);
@@ -82,7 +82,7 @@ export default function FaithDevotionView({ metrics, onUpdateMetrics, theme }: F
         const aiResponse = data.responses[0].message;
         setChatHistory((prev) => [...prev, { sender: "ai", text: aiResponse }]);
       } else {
-        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies, Melchi. My spiritual channels are still. Maintain high awareness, follow the breath, and remain completely objective." }]);
+        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies. My spiritual channels are still. Maintain high awareness, follow the breath, and remain completely objective." }]);
       }
     } catch (err) {
       setChatHistory((prev) => [...prev, { sender: "ai", text: "Connection error. Deep local Dharma suggests focusing strictly on standard observation of sensations (Vipassana)." }]);
@@ -221,7 +221,7 @@ export default function FaithDevotionView({ metrics, onUpdateMetrics, theme }: F
               {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                   <span className="text-[9px] font-mono text-slate-500 uppercase mb-0.5">
-                    {msg.sender === "user" ? "Melchi" : "Dharma Master"}
+                    {msg.sender === "user" ? "You" : "Dharma Master"}
                   </span>
                   <div className={`p-3 rounded-2xl text-xs max-w-[90%] leading-relaxed ${
                     msg.sender === "user"

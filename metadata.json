@@ -1,6 +1,6 @@
 {
-  "name": "Jacked Buddha",
-  "description": "Strong Body. Calm Mind. Build Your Future. An AI Personal Operating System and Council for Melchi.",
+  "name": "Vita",
+  "description": "Your Personal AI Life Coach - Clarify your life goals, build a strategic long-term plan, and execute daily actions to achieve your highest vision.",
   "requestFramePermissions": ["geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

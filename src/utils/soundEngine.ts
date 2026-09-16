@@ -725,6 +725,31 @@ class SoundEngine {
     } catch (e) {}
   }
 
+  public playSubtleClick() {
+    if (!this._enabled) return;
+    try {
+      const ctx = this.initCtx();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(400, now + 0.03);
+
+      gain.gain.setValueAtTime(this._volume * 0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.035);
+    } catch (e) {}
+  }
+
   public stopAllAmbient() {
     this.rainActive = false;
     this.windActive = false;

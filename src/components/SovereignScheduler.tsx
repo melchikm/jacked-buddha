@@ -92,7 +92,7 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
     // 2. Browser native push notification
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
       new Notification("Sovereign AI Scheduler", {
-        body: `Melchi, your slot is active: "${task.title}" (${task.duration}). Align with absolute presence.`,
+        body: `Your slot is active: "${task.title}" (${task.duration}). Align with absolute presence.`,
         icon: "/icon.png"
       });
     } else {
@@ -195,6 +195,55 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
     setShowManualForm(false);
   };
 
+  // Push single goal to Today's Mission
+  const handlePushGoalToMission = (goalTitle: string) => {
+    sound.playTingsha();
+    const existingWins = dbState.todayPlan?.wins || [];
+    if (existingWins.includes(goalTitle)) return;
+
+    const updatedWins = [...existingWins, goalTitle];
+    const updatedPlan = {
+      ...(dbState.todayPlan || { focus: "Execute daily sovereign objectives.", wins: [], risks: [], suggestions: [], balanceScore: 84 }),
+      wins: updatedWins
+    };
+
+    onUpdateState({ todayPlan: updatedPlan });
+
+    fetch("/api/store/plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: new Date().toISOString().split("T")[0],
+        plan: updatedPlan
+      })
+    }).catch(err => console.error("Plan sync failed:", err));
+  };
+
+  // Push ALL AI Goals to Today's Mission
+  const handleSyncAllGoalsToMission = () => {
+    if (aiGoals.length === 0) return;
+    sound.playSingingBowl();
+    const existingWins = dbState.todayPlan?.wins || [];
+    const newTitles = aiGoals.map(g => g.title);
+    const combined = Array.from(new Set([...existingWins, ...newTitles]));
+
+    const updatedPlan = {
+      ...(dbState.todayPlan || { focus: "Execute daily sovereign objectives.", wins: [], risks: [], suggestions: [], balanceScore: 84 }),
+      wins: combined
+    };
+
+    onUpdateState({ todayPlan: updatedPlan });
+
+    fetch("/api/store/plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: new Date().toISOString().split("T")[0],
+        plan: updatedPlan
+      })
+    }).catch(err => console.error("Plan sync failed:", err));
+  };
+
   // Generate AI Schedule from rough input
   const handleAIScheduleRequest = async () => {
     if (!roughInput.trim()) return;
@@ -210,7 +259,11 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
       const data = await response.json();
       if (data.success && data.scheduledTasks) {
         sound.playSingingBowl();
-        onUpdateState({ scheduledTasks: data.scheduledTasks });
+        const nextState: Partial<DBState> = { scheduledTasks: data.scheduledTasks };
+        if (data.todayPlan) {
+          nextState.todayPlan = data.todayPlan;
+        }
+        onUpdateState(nextState);
         persistTasks(data.scheduledTasks);
         setRoughInput("");
       }
@@ -234,7 +287,11 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
       const data = await response.json();
       if (data.success && data.aiDailyGoals) {
         sound.playSingingBowl();
-        onUpdateState({ aiDailyGoals: data.aiDailyGoals });
+        const nextState: Partial<DBState> = { aiDailyGoals: data.aiDailyGoals };
+        if (data.todayPlan) {
+          nextState.todayPlan = data.todayPlan;
+        }
+        onUpdateState(nextState);
         persistAIGoals(data.aiDailyGoals);
       }
     } catch (err) {
@@ -388,7 +445,7 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
             </h3>
             <p className={`text-xs leading-relaxed max-w-xl ${theme === "bright" ? "text-stone-600" : "text-slate-400"}`}>
               {absoluteZeroMet 
-                ? "Melchi, all targets have been purified to absolute zero! Satori mind achieved. Your daily container is completely immaculate." 
+                ? "All targets have been purified to absolute zero! Satori mind achieved. Your daily container is completely immaculate." 
                 : `You have ${leakingTrackersCount} trackers currently leaking above zero. Track and minimize daily variables to optimize your neural state.`}
             </p>
           </div>
@@ -511,7 +568,7 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
               </div>
               
               <p className={`text-xs leading-relaxed ${theme === "bright" ? "text-stone-600" : "text-slate-400"}`}>
-                Melchi, roughly list your tasks, study blocks, workouts, and grooming rituals. Buddha Core AI will parse the raw prose, sequence them optimally, and add contextual coaching triggers.
+                Roughly list your tasks, study blocks, workouts, and grooming rituals. Buddha Core AI will parse the raw prose, sequence them optimally, and add contextual coaching triggers.
               </p>
 
               <div className="space-y-3">
@@ -761,16 +818,27 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
                     Buddha's Daily Directives
                   </h3>
                 </div>
-                <button
-                  onClick={handleGenerateAIGoals}
-                  disabled={isGeneratingGoals}
-                  className={`p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors cursor-pointer ${
-                    isGeneratingGoals ? "animate-spin" : ""
-                  }`}
-                  title="Regenerate dynamic daily directives"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {aiGoals.length > 0 && (
+                    <button
+                      onClick={handleSyncAllGoalsToMission}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer"
+                      title="Sync all goals to Today's Mission"
+                    >
+                      <Plus className="w-3 h-3" /> Sync All to Mission
+                    </button>
+                  )}
+                  <button
+                    onClick={handleGenerateAIGoals}
+                    disabled={isGeneratingGoals}
+                    className={`p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors cursor-pointer ${
+                      isGeneratingGoals ? "animate-spin" : ""
+                    }`}
+                    title="Regenerate dynamic daily directives"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <p className={`text-xs leading-relaxed ${theme === "bright" ? "text-stone-600" : "text-slate-400"}`}>
@@ -795,11 +863,13 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
                                      goal.type === "finance" ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" :
                                      goal.type === "hair" ? "text-amber-400 bg-amber-500/10 border-amber-500/20" :
                                      "text-indigo-400 bg-indigo-500/10 border-indigo-500/20";
+                    
+                    const isAlreadyInMission = (dbState.todayPlan?.wins || []).includes(goal.title);
+
                     return (
                       <div
                         key={goal.id}
-                        onClick={() => handleToggleAIGoal(goal.id)}
-                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex gap-3 ${
+                        className={`p-4 rounded-2xl border transition-all flex gap-3 ${
                           goal.completed
                             ? "bg-emerald-500/5 border-emerald-500/10 opacity-60"
                             : theme === "bright"
@@ -807,7 +877,10 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
                               : "bg-white/2 border-white/5 hover:bg-white/3"
                         }`}
                       >
-                        <div className="pt-0.5 shrink-0">
+                        <div 
+                          onClick={() => handleToggleAIGoal(goal.id)}
+                          className="pt-0.5 shrink-0 cursor-pointer"
+                        >
                           <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
                             goal.completed 
                               ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" 
@@ -824,8 +897,28 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
                             <span className={`text-[9px] font-mono uppercase px-2 py-0.5 rounded border ${tagColor}`}>
                               {goal.type}
                             </span>
+                            
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePushGoalToMission(goal.title);
+                              }}
+                              disabled={isAlreadyInMission}
+                              className={`text-[9px] font-mono px-2 py-0.5 rounded border transition-all flex items-center gap-1 cursor-pointer ${
+                                isAlreadyInMission
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 cursor-default"
+                                  : "bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+                              }`}
+                            >
+                              {isAlreadyInMission ? "✓ In Today's Mission" : "+ Add to Mission"}
+                            </button>
                           </div>
-                          <h4 className={`text-xs font-bold leading-snug ${goal.completed ? "line-through text-slate-500" : ""}`}>
+                          
+                          <h4 
+                            onClick={() => handleToggleAIGoal(goal.id)}
+                            className={`text-xs font-bold leading-snug cursor-pointer ${goal.completed ? "line-through text-slate-500" : ""}`}
+                          >
                             {goal.title}
                           </h4>
                           <p className="text-[11px] text-slate-500 font-sans leading-relaxed">
@@ -874,7 +967,7 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
                   Immature Noise Silenced. Pure Zen Achieved.
                 </h3>
                 <p className="text-sm text-emerald-300/80 font-sans">
-                  Melchi, every single high-risk variables tracker has been brought to exactly **absolute zero**. Your physical vessel is safe from mechanical impingement, sugar levels are optimized, and cognitive debt is clear.
+                  Every single high-risk variables tracker has been brought to exactly **absolute zero**. Your physical vessel is safe from mechanical impingement, sugar levels are optimized, and cognitive debt is clear.
                 </p>
               </div>
               <button
@@ -1113,7 +1206,7 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
           <div className="glass-panel rounded-3xl p-6 border border-amber-500/10 bg-amber-500/5 max-w-4xl mx-auto space-y-2">
             <div className="flex items-center gap-2 text-amber-500">
               <Flame className="w-4 h-4 animate-pulse" />
-              <h4 className="text-[10px] font-mono uppercase tracking-widest font-black">Melchi's Absolute Zero Strategy</h4>
+              <h4 className="text-[10px] font-mono uppercase tracking-widest font-black">Absolute Zero Strategy</h4>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed font-sans">
               "The high-salaried executive does not manage success; he manages noise and leakage. When you eliminate empty sugar spikes, remove mechanical shoulder strain vectors, clear out incorrect verbal patterns, and silence mindless screen drift, you return your physical vessel and neural focus to the raw zero state. Out of this absolute zero, pristine and powerful actions emerge naturally."

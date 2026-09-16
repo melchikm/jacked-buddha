@@ -16,7 +16,7 @@ export default function MusicProductionView({ metrics, onUpdateMetrics, theme }:
   const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
     {
       sender: "ai",
-      text: "Greetings, Melchi. I am the Sonic Engineer of your Second Brain. I focus on FL Studio workflow optimization, chord structures, progressive rhythms, and using music as a sacred meditative outlet (BPM discharge) to unload cognitive analytical fatigue."
+      text: "Greetings. I am the Sonic Engineer of your Second Brain. I focus on FL Studio workflow optimization, chord structures, progressive rhythms, and using music as a sacred meditative outlet (BPM discharge) to unload cognitive analytical fatigue."
     }
   ]);
   const [isSaving, setIsSaving] = useState(false);
@@ -82,7 +82,7 @@ export default function MusicProductionView({ metrics, onUpdateMetrics, theme }:
         const aiResponse = data.responses[0].message;
         setChatHistory((prev) => [...prev, { sender: "ai", text: aiResponse }]);
       } else {
-        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies, Melchi. My creative synthesizer is refreshing. Keep your project open and dedicate 30 minutes to clean chord writing tonight." }]);
+        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies. My creative synthesizer is refreshing. Keep your project open and dedicate 30 minutes to clean chord writing tonight." }]);
       }
     } catch (err) {
       setChatHistory((prev) => [...prev, { sender: "ai", text: "Connection error. Local creative backup suggests exploring a 128 BPM progressive chord stack in FL Studio." }]);
@@ -221,7 +221,7 @@ export default function MusicProductionView({ metrics, onUpdateMetrics, theme }:
               {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                   <span className="text-[9px] font-mono text-slate-500 uppercase mb-0.5">
-                    {msg.sender === "user" ? "Melchi" : "Sonic Engineer"}
+                    {msg.sender === "user" ? "You" : "Sonic Engineer"}
                   </span>
                   <div className={`p-3 rounded-2xl text-xs max-w-[90%] leading-relaxed ${
                     msg.sender === "user"

@@ -1,0 +1,123 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'name'])
+        && data.uid is string && data.uid == request.auth.uid
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && (!('username' in data) || (data.username is string && data.username.size() > 0 && data.username.size() <= 100))
+        && (!('email' in data) || (data.email is string && data.email.size() <= 150))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500))
+        && (!('age' in data) || (data.age is number && data.age >= 0 && data.age <= 150))
+        && (!('selectedAIs' in data) || data.selectedAIs is list)
+        && (!('isOnboarded' in data) || data.isOnboarded is bool);
+    }
+
+    function isValidUserGoals(data) {
+      return data.keys().hasAll(['userId', 'primaryAppGoal'])
+        && data.userId is string && data.userId == request.auth.uid
+        && data.primaryAppGoal is string && data.primaryAppGoal.size() > 0 && data.primaryAppGoal.size() <= 500
+        && (!('healthGoal' in data) || (data.healthGoal is string && data.healthGoal.size() <= 500))
+        && (!('careerGoal' in data) || (data.careerGoal is string && data.careerGoal.size() <= 500))
+        && (!('skillsGoal' in data) || (data.skillsGoal is string && data.skillsGoal.size() <= 500))
+        && (!('lifestyleGoal' in data) || (data.lifestyleGoal is string && data.lifestyleGoal.size() <= 500))
+        && (!('age' in data) || (data.age is number && data.age >= 0 && data.age <= 150));
+    }
+
+    function isValidUserHabit(data) {
+      return data.keys().hasAll(['id', 'userId', 'title'])
+        && data.id is string && data.id.size() > 0 && data.id.size() <= 128
+        && data.userId is string && data.userId == request.auth.uid
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && (!('category' in data) || (data.category is string && data.category.size() <= 50))
+        && (!('streak' in data) || (data.streak is number && data.streak >= 0))
+        && (!('completedToday' in data) || data.completedToday is bool)
+        && (!('targetDaysPerWeek' in data) || (data.targetDaysPerWeek is number && data.targetDaysPerWeek >= 1 && data.targetDaysPerWeek <= 7));
+    }
+
+    function isValidUserLog(data) {
+      return data.keys().hasAll(['id', 'userId', 'type', 'detail'])
+        && data.id is string && data.id.size() > 0 && data.id.size() <= 128
+        && data.userId is string && data.userId == request.auth.uid
+        && data.type is string && data.type.size() > 0 && data.type.size() <= 50
+        && data.detail is string && data.detail.size() > 0 && data.detail.size() <= 1000;
+    }
+
+    function isValidMountainState(data) {
+      return data.keys().hasAll(['userId', 'characterName'])
+        && data.userId is string && data.userId == request.auth.uid
+        && data.characterName is string && data.characterName.size() > 0 && data.characterName.size() <= 100
+        && (!('level' in data) || (data.level is number && data.level >= 0))
+        && (!('lifetimeAltitudeMeters' in data) || (data.lifetimeAltitudeMeters is number && data.lifetimeAltitudeMeters >= 0))
+        && (!('currentAltitudeMeters' in data) || (data.currentAltitudeMeters is number && data.currentAltitudeMeters >= 0))
+        && (!('inCampMode' in data) || data.inCampMode is bool)
+        && (!('campReason' in data) || (data.campReason is string && data.campReason.size() <= 500));
+    }
+
+    // Health / connection test document (read-only for all to verify connection)
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // User profile document
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow delete: if isOwner(userId);
+
+      // Calibrated life goals
+      match /goals/{goalDoc} {
+        allow get: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidUserGoals(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      // Selected Tools & Preferences
+      match /preferences/{prefDoc} {
+        allow get, list: if isOwner(userId);
+        allow create, update, delete: if isOwner(userId);
+      }
+
+      // Habits subcollection
+      match /habits/{habitId} {
+        allow get, list: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(habitId) && isValidUserHabit(request.resource.data);
+        allow delete: if isOwner(userId) && isValidId(habitId);
+      }
+
+      // Activity logs subcollection
+      match /logs/{logId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(logId) && isValidUserLog(request.resource.data);
+        allow update, delete: if isOwner(userId) && isValidId(logId);
+      }
+
+      // Mountain of Life state document
+      match /mountain/{mountainDoc} {
+        allow get: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidMountainState(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

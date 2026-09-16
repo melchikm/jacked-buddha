@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with calibrated long term goals and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "isOnboarded": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "name"]
+    },
+    "UserGoals": {
+      "title": "UserGoals",
+      "description": "User calibrated life goals across pillars",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "primaryAppGoal": { "type": "string", "maxLength": 500 },
+        "healthGoal": { "type": "string", "maxLength": 500 },
+        "careerGoal": { "type": "string", "maxLength": 500 },
+        "skillsGoal": { "type": "string", "maxLength": 500 },
+        "lifestyleGoal": { "type": "string", "maxLength": 500 },
+        "age": { "type": "number" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["userId", "primaryAppGoal"]
+    },
+    "UserHabit": {
+      "title": "UserHabit",
+      "description": "Daily habit tracked by the user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 50 },
+        "streak": { "type": "number" },
+        "completedToday": { "type": "boolean" },
+        "targetDaysPerWeek": { "type": "number" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "title"]
+    },
+    "UserLog": {
+      "title": "UserLog",
+      "description": "Activity, reflection, or workout log entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "maxLength": 50 },
+        "detail": { "type": "string", "maxLength": 1000 },
+        "timestamp": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "type", "detail"]
+    },
+    "MountainState": {
+      "title": "MountainState",
+      "description": "User Mountain of Life expedition state",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "characterName": { "type": "string", "maxLength": 100 },
+        "level": { "type": "number" },
+        "lifetimeAltitudeMeters": { "type": "number" },
+        "currentAltitudeMeters": { "type": "number" },
+        "targetAltitudeMeters": { "type": "number" },
+        "inCampMode": { "type": "boolean" },
+        "campReason": { "type": "string", "maxLength": 500 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["userId", "characterName"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User account document"
+    },
+    "/users/{userId}/goals/current": {
+      "schema": { "$ref": "#/entities/UserGoals" },
+      "description": "Calibrated life blueprint goals"
+    },
+    "/users/{userId}/habits/{habitId}": {
+      "schema": { "$ref": "#/entities/UserHabit" },
+      "description": "User habits collection"
+    },
+    "/users/{userId}/logs/{logId}": {
+      "schema": { "$ref": "#/entities/UserLog" },
+      "description": "User history logs collection"
+    },
+    "/users/{userId}/mountain/state": {
+      "schema": { "$ref": "#/entities/MountainState" },
+      "description": "User Mountain of Life state document"
+    }
+  }
+}

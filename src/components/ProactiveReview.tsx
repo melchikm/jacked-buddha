@@ -195,7 +195,7 @@ export default function ProactiveReview({ metrics }: ProactiveReviewProps) {
 
             {review && (
               <div className="border-t border-white/5 pt-4 mt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-[11px] text-slate-500 font-mono">
-                <span>Model Alias: gemini-3.5-flash</span>
+                <span>Model Alias: gemini-3.8-flash</span>
                 <span>Proactive failure protection active</span>
               </div>
             )}

@@ -1,7 +1,7 @@
 {
-  "name": "Jacked Buddha OS",
-  "short_name": "Jacked Buddha",
-  "description": "Elite Personal Operating System & Council for Melchi",
+  "name": "Vita",
+  "short_name": "Vita",
+  "description": "Your Personal AI Life Coach - Clarify your life goals, build a strategic long-term plan, and execute daily actions to achieve your highest vision.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

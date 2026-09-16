@@ -16,7 +16,7 @@ export default function CinemaMakingView({ metrics, onUpdateMetrics, theme }: Ci
   const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
     {
       sender: "ai",
-      text: "Greetings, Melchi. I am your Cinematic Bodhi Director. In Zen, cinema is the ultimate modern manifestation of 'Maya'—the cosmic illusion. Let us sculpt time and capture satori through meticulous visual storytelling, script design, and visual composition."
+      text: "Greetings. I am your Cinematic Bodhi Director. In Zen, cinema is the ultimate modern manifestation of 'Maya'—the cosmic illusion. Let us sculpt time and capture satori through meticulous visual storytelling, script design, and visual composition."
     }
   ]);
   const [isSaving, setIsSaving] = useState(false);
@@ -82,7 +82,7 @@ export default function CinemaMakingView({ metrics, onUpdateMetrics, theme }: Ci
         const aiResponse = data.responses[0].message;
         setChatHistory((prev) => [...prev, { sender: "ai", text: aiResponse }]);
       } else {
-        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies, Melchi. My cinematic databases are recalibrating. Focus on outlining your main conflict and character motivations today." }]);
+        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies. My cinematic databases are recalibrating. Focus on outlining your main conflict and character motivations today." }]);
       }
     } catch (err) {
       setChatHistory((prev) => [...prev, { sender: "ai", text: "Connection error. Local film board suggests analyzing character arcs or storyboards." }]);
@@ -237,7 +237,7 @@ export default function CinemaMakingView({ metrics, onUpdateMetrics, theme }: Ci
               {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                   <span className="text-[9px] font-mono text-slate-500 uppercase mb-0.5">
-                    {msg.sender === "user" ? "Melchi" : "Cinema Bodhi"}
+                    {msg.sender === "user" ? "You" : "Cinema Bodhi"}
                   </span>
                   <div className={`p-3 rounded-2xl text-xs max-w-[90%] leading-relaxed ${
                     msg.sender === "user"

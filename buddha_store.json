@@ -1,429 +1,1045 @@
 {
   "metrics": {
-    "weight": 82.5,
-    "bodyFat": 14.2,
-    "protein": 165,
-    "calories": 2800,
-    "sleep": 7.5,
-    "recovery": 85,
-    "money": 450000,
+    "weight": 0,
+    "bodyFat": 0,
+    "protein": 0,
+    "calories": 0,
+    "sleep": 0,
+    "recovery": 0,
+    "money": 0,
     "mood": 8,
     "hairGrowth": "Healthy",
-    "reading": 45,
-    "musicBPM": 128,
-    "sportsHours": 2.5,
-    "travelCountries": 12,
-    "meditation": 20,
-    "water": 3.2,
-    "coffee": 2,
-    "mbaHours": 3.5,
-    "learning": "React + Flutter Architecture",
-    "projects": "Jacked Buddha Core OS"
+    "reading": 0,
+    "musicBPM": 120,
+    "sportsHours": 0,
+    "travelCountries": 0,
+    "meditation": 0,
+    "water": 0,
+    "coffee": 0,
+    "mbaHours": 0,
+    "learning": "",
+    "projects": ""
   },
-  "historyLogs": [
-    {
-      "id": "log-19",
-      "date": "2026-07-19",
-      "type": "fitness",
-      "title": "Shoulder Active-Rehab & Squats",
-      "detail": "Slow-motion face pulls 3x15, leg press 4x12. Zero pain in rotator cuff."
+  "historyLogs": [],
+  "challenges": [],
+  "goals": [],
+  "habits": [],
+  "userStates": {
+    "Explorer": {
+      "metrics": {
+        "weight": 0,
+        "bodyFat": 0,
+        "protein": 0,
+        "calories": 0,
+        "sleep": 0,
+        "recovery": 0,
+        "money": 0,
+        "mood": 0,
+        "hairGrowth": "Baseline",
+        "reading": 0,
+        "musicBPM": 0,
+        "sportsHours": 0,
+        "travelCountries": 0,
+        "meditation": 0,
+        "water": 0,
+        "coffee": 0,
+        "mbaHours": 0,
+        "learning": "New Beginning",
+        "projects": "Fresh Start"
+      },
+      "historyLogs": [],
+      "challenges": [],
+      "goals": [],
+      "habits": [],
+      "scheduledTasks": [],
+      "aiDailyGoals": [],
+      "zeroTrackers": [
+        {
+          "id": "zt-1",
+          "title": "Procrastination / off-target friction",
+          "currentValue": 0,
+          "unit": "times",
+          "category": "productivity",
+          "reason": "Protects deep work flow and sovereign time.",
+          "targetValue": 0
+        },
+        {
+          "id": "zt-2",
+          "title": "Processed food & refined sugars",
+          "currentValue": 0,
+          "unit": "servings",
+          "category": "nutrition",
+          "reason": "Preserves stable glucose & cellular vitality.",
+          "targetValue": 0
+        },
+        {
+          "id": "zt-3",
+          "title": "Aimless screen & social scrolling",
+          "currentValue": 0,
+          "unit": "mins",
+          "category": "mind",
+          "reason": "Guards neural bandwidth against cognitive decay.",
+          "targetValue": 0
+        }
+      ],
+      "mountainState": {
+        "characterName": "Explorer",
+        "level": 1,
+        "lifetimeAltitudeMeters": 0,
+        "lifetimeExpeditionsCount": 1,
+        "completedGoalsCount": 0,
+        "equipmentLevel": 1,
+        "inCampMode": false,
+        "campReason": "",
+        "currentExpedition": {
+          "id": "exp-1788701889187",
+          "expeditionNumber": "EXPEDITION 01",
+          "title": "EXPEDITION 01 · NEW HORIZONS",
+          "monthYear": "September 2026",
+          "targetAltitudeMeters": 5000,
+          "currentAltitudeMeters": 0,
+          "completed": false,
+          "checkpoints": [
+            {
+              "id": "cp-1",
+              "title": "BASE CAMP",
+              "subtitle": "Baseline & Goal Alignment",
+              "altitudeMeters": 0,
+              "weekNumber": 1,
+              "completed": true,
+              "tasksCount": 3,
+              "completedTasksCount": 3,
+              "goalPeriod": "weekly",
+              "goalsList": [
+                "Calibrate Vita Life Blueprint",
+                "Log Initial Metrics",
+                "Establish Core Routines"
+              ]
+            },
+            {
+              "id": "cp-2",
+              "title": "VITALITY RIDGE",
+              "subtitle": "Week 1: Optimize vessel: Build Lean Muscle & Strength",
+              "altitudeMeters": 1200,
+              "weekNumber": 1,
+              "completed": false,
+              "tasksCount": 4,
+              "completedTasksCount": 0,
+              "goalPeriod": "weekly",
+              "goalsList": [
+                "Complete 4 Physical Sprints",
+                "Maintain Macro Targets",
+                "Hydrate & Sleep Recovery"
+              ]
+            },
+            {
+              "id": "cp-3",
+              "title": "MASTERY PASS",
+              "subtitle": "Week 2: Deepen deliberate mastery in Software Engineering & Product Management.",
+              "altitudeMeters": 2400,
+              "weekNumber": 2,
+              "completed": false,
+              "tasksCount": 4,
+              "completedTasksCount": 0,
+              "goalPeriod": "weekly",
+              "goalsList": [
+                "Log 15 Deep Study Hours",
+                "Master Core Frameworks",
+                "Zero Distraction Study"
+              ]
+            },
+            {
+              "id": "cp-4",
+              "title": "EMPIRE RIDGE",
+              "subtitle": "Week 3: Scale leadership in Build Scalable Startup / Venture",
+              "altitudeMeters": 3600,
+              "weekNumber": 3,
+              "completed": false,
+              "tasksCount": 4,
+              "completedTasksCount": 0,
+              "goalPeriod": "weekly",
+              "goalsList": [
+                "Ship Critical Project Milestone",
+                "Expand Sovereign Network",
+                "Strategic Roadmapping"
+              ]
+            },
+            {
+              "id": "cp-5",
+              "title": "SOVEREIGN SUMMIT",
+              "subtitle": "Summit Peak: Use Vita to sustain continuous physical vitality, master Software Engineering, and achieve career autonomy.",
+              "altitudeMeters": 5000,
+              "weekNumber": 4,
+              "completed": false,
+              "tasksCount": 4,
+              "completedTasksCount": 0,
+              "goalPeriod": "monthly_summit",
+              "goalsList": [
+                "🏆 Master Health: Optimize vessel: Build Lean Muscle & Strength",
+                "📚 Master Craft: Deepen deliberate mastery in Software Engineering & Product Management.",
+                "💼 Master Career: Scale leadership in Build Scalable Startup / Venture",
+                "🕊️ Master Freedom: Establish sovereign morning routines, deep presence, and work-life harmony."
+              ]
+            }
+          ],
+          "categories": [
+            {
+              "category": "BODY",
+              "title": "Physical Vessel & Power",
+              "icon": "🏋️",
+              "objectives": [
+                {
+                  "id": "b1",
+                  "title": "Advance: Optimize vessel: Build Lean Muscle & Strength",
+                  "category": "BODY",
+                  "xp": 50,
+                  "altitudeGainMeters": 200,
+                  "completed": false
+                },
+                {
+                  "id": "b2",
+                  "title": "Log 7 Consecutive Days Nutrition & Sleep",
+                  "category": "BODY",
+                  "xp": 30,
+                  "altitudeGainMeters": 150,
+                  "completed": false
+                }
+              ]
+            },
+            {
+              "category": "SKILLS",
+              "title": "Cognitive Mastery & Learning",
+              "icon": "🧠",
+              "objectives": [
+                {
+                  "id": "s1",
+                  "title": "Master Core Concepts in Deepen deliberate mastery in Software Engineering & Product Management.",
+                  "category": "SKILLS",
+                  "xp": 60,
+                  "altitudeGainMeters": 250,
+                  "completed": false
+                },
+                {
+                  "id": "s2",
+                  "title": "Complete 15 Hours Undivided Focus",
+                  "category": "SKILLS",
+                  "xp": 40,
+                  "altitudeGainMeters": 150,
+                  "completed": false
+                }
+              ]
+            },
+            {
+              "category": "BUILD",
+              "title": "Career & Project Architecture",
+              "icon": "🚀",
+              "objectives": [
+                {
+                  "id": "u1",
+                  "title": "Deliver Milestone for Scale leadership in Build Scalable Startup / Venture",
+                  "category": "BUILD",
+                  "xp": 80,
+                  "altitudeGainMeters": 300,
+                  "completed": false
+                }
+              ]
+            }
+          ]
+        },
+        "guideLogs": [
+          {
+            "id": "g-log-1788701889187",
+            "timestamp": "2026-09-06 13:38",
+            "role": "guide",
+            "text": "Welcome to Vita, Explorer. Your ascent route has been aligned with your life blueprint: Use Vita to sustain continuous physical vitality, master Software Engineering, and achieve career autonomy.. You start at Base Camp (0m). Every aligned action lifts you higher toward the Summit.",
+            "actionType": "encouragement"
+          }
+        ],
+        "dailySteps": [
+          {
+            "id": "ds-1",
+            "title": "🏋️ Health: Optimize vessel: Build Lean Muscle & Str",
+            "category": "BODY",
+            "xp": 40,
+            "altitudeGainMeters": 120,
+            "completed": false
+          },
+          {
+            "id": "ds-2",
+            "title": "📚 Skills: Deepen deliberate mastery in Software En",
+            "category": "SKILLS",
+            "xp": 40,
+            "altitudeGainMeters": 120,
+            "completed": false
+          },
+          {
+            "id": "ds-3",
+            "title": "🚀 Career: Scale leadership in Build Scalable Start",
+            "category": "BUILD",
+            "xp": 40,
+            "altitudeGainMeters": 120,
+            "completed": false
+          },
+          {
+            "id": "ds-4",
+            "title": "🧘 Mind: Breath awareness & stillness",
+            "category": "MIND",
+            "xp": 30,
+            "altitudeGainMeters": 90,
+            "completed": false
+          }
+        ]
+      },
+      "todayPlan": {
+        "focus": "Welcome to your fresh start! Define your aspirations in your AI Life Coach to activate your personalized daily system.",
+        "wins": [],
+        "risks": [],
+        "suggestions": [
+          "Define your primary life goals to synthesize your personalized roadmap."
+        ],
+        "balanceScore": 0
+      },
+      "categoryPlans": [
+        {
+          "category": "fitness",
+          "title": "Fitness & Physical Vessel",
+          "icon": "🏋️",
+          "status": "Ready for new targets",
+          "mission": "Establish baseline physical metrics and execute today's training.",
+          "recommendation": "Prioritize nutrient-dense whole foods and consistent sleep cycles.",
+          "weeklyReview": "Clean slate initialized. Ready for initial measurement logs.",
+          "monthlyReview": "Formulating primary physical progression roadmap.",
+          "predictions": "Consistent tracking correlates directly with progressive body composition gains.",
+          "actionBtnText": "Log Workout & Weight"
+        },
+        {
+          "category": "mba",
+          "title": "Cognitive Mastery & Learning",
+          "icon": "🧠",
+          "status": "Ready for new study focus",
+          "mission": "Execute daily deep study block.",
+          "recommendation": "Focus on understanding core first principles rather than superficial memorization.",
+          "weeklyReview": "Study schedule calibrated to long-term goals.",
+          "monthlyReview": "Milestones defined for cognitive expansion.",
+          "predictions": "Daily 45-minute focused sprints yield compound intellectual momentum.",
+          "actionBtnText": "Start Study Session"
+        },
+        {
+          "category": "career",
+          "title": "Career & Empire Building",
+          "icon": "💼",
+          "status": "Ready for new career objectives",
+          "mission": "Ship the next high-leverage deliverable for your primary project.",
+          "recommendation": "Focus on actions that directly increase agency, leverage, and sovereign revenue.",
+          "weeklyReview": "Trajectory aligned with long-term strategic vision.",
+          "monthlyReview": "Executive roadmapping active.",
+          "predictions": "Strategic consistency compounds disproportionately over 6-month horizons.",
+          "actionBtnText": "Review Career Plan"
+        },
+        {
+          "category": "mind",
+          "title": "Mindfulness & Stillness",
+          "icon": "🧘",
+          "status": "Fresh baseline",
+          "mission": "Cultivate 15 minutes of uninterrupted silence and mental clarity.",
+          "recommendation": "Notice the breath and observe sensations without judgment.",
+          "weeklyReview": "Mental clarity practices calibrated.",
+          "monthlyReview": "Inner resilience foundation established.",
+          "predictions": "Daily mindfulness practice reduces reactive decision-making by 35%.",
+          "actionBtnText": "Begin Meditation"
+        }
+      ],
+      "metricsByDate": {},
+      "plansByDate": {},
+      "conversations": [],
+      "lifeCoachState": {
+        "userGoalsInput": "Transition into high-level engineering leadership, establish authority in AI systems, and build financial sovereignty.",
+        "longTermPlan": {
+          "visionStatement": "To evolve into a visionary Engineering Leader who bridges the gap between complex AI architecture and business value, while architecting a personal financial engine that guarantees total professional autonomy.",
+          "targetTimeline": "18-Month Strategic Horizon",
+          "corePillars": [
+            {
+              "name": "Technical Eminence",
+              "description": "Mastering the intersection of scalable AI systems and architectural strategy to establish undisputed subject matter authority.",
+              "targetMilestone": "Architect and deploy an enterprise-grade AI solution that generates measurable ROI."
+            },
+            {
+              "name": "Leadership Influence",
+              "description": "Cultivating the soft and hard skills required to lead cross-functional teams and influence executive-level technical strategy.",
+              "targetMilestone": "Promotion to Engineering Manager or Principal Architect role."
+            },
+            {
+              "name": "Financial Sovereignty",
+              "description": "Building a diversified asset portfolio that decouples income from time, enabling long-term career risk-taking.",
+              "targetMilestone": "Achieve a 6-month 'Freedom Fund' and establish an automated wealth-building mechanism."
+            }
+          ],
+          "phases": [
+            {
+              "phaseNumber": 1,
+              "phaseName": "Foundational Strengthening",
+              "duration": "0-6 Months",
+              "focus": "Skill acquisition and personal system optimization.",
+              "milestones": [
+                "Complete advanced AI certification or specialized system design track",
+                "Audit and optimize personal spending to maximize investment rate",
+                "Identify and secure a mentor in a high-level engineering leadership position"
+              ]
+            },
+            {
+              "phaseNumber": 2,
+              "phaseName": "Authority Expansion",
+              "duration": "7-12 Months",
+              "focus": "Visibility and high-impact project execution.",
+              "milestones": [
+                "Publish 3 thought-leadership articles on AI systems architecture",
+                "Lead a high-visibility project within your current organization",
+                "Diversify income streams through equity-building or consulting"
+              ]
+            },
+            {
+              "phaseNumber": 3,
+              "phaseName": "Leadership Transition",
+              "duration": "13-18 Months",
+              "focus": "Strategic positioning and role transition.",
+              "milestones": [
+                "Secure promotion or transition to a leadership-focused role",
+                "Solidify personal brand as an AI systems expert",
+                "Achieve financial independence milestone as defined by personal portfolio goals"
+              ]
+            }
+          ],
+          "dailyActions": [
+            {
+              "title": "Strategic Deep Work",
+              "category": "deep_work",
+              "timeEstimate": "90 minutes",
+              "whyItMatters": "Uninterrupted focus on high-level AI architecture tasks builds the technical authority required for leadership.",
+              "completed": false,
+              "id": "action-Explorer-0-strategic_deep_work"
+            },
+            {
+              "title": "Leadership Communication Practice",
+              "category": "core_focus",
+              "timeEstimate": "20 minutes",
+              "whyItMatters": "Refining the ability to translate complex technical concepts into business strategy is the hallmark of a leader.",
+              "completed": false,
+              "id": "action-Explorer-1-leadership_communication_practice"
+            },
+            {
+              "title": "Financial Ledger Review",
+              "category": "habit",
+              "timeEstimate": "10 minutes",
+              "whyItMatters": "Maintains awareness of cash flow and investment velocity, keeping financial sovereignty as a subconscious priority.",
+              "completed": false,
+              "id": "action-Explorer-2-financial_ledger_review"
+            },
+            {
+              "title": "Insight Synthesis Journaling",
+              "category": "evening_winddown",
+              "timeEstimate": "15 minutes",
+              "whyItMatters": "Reflecting on daily interactions and technical hurdles accelerates the learning loop and builds self-awareness.",
+              "completed": false,
+              "id": "action-Explorer-3-insight_synthesis_journaling"
+            }
+          ],
+          "successMetrics": [
+            "Attainment of a Senior/Staff-level Engineering Leadership role with direct budgetary or architectural influence.",
+            "The creation of a public-facing body of work that establishes you as a recognized expert in AI systems.",
+            "The establishment of a self-sustaining investment portfolio that covers base living expenses."
+          ],
+          "coachAdvice": "Explorer, you are standing at the threshold of a significant transformation. Transitioning into leadership is not merely about gaining a title; it is about shifting your identity from a builder of tools to an architect of systems and a developer of people. You have the technical rigor; now, we will pair it with the strategic patience and financial discipline required to command your future. Trust the process, maintain your daily non-negotiables, and remember: you aren't just building a career—you are building a life of sovereign, high-impact contribution.",
+          "generatedAt": "2026-09-06T13:38:25.253Z"
+        },
+        "dailyActions": [
+          {
+            "title": "Strategic Deep Work",
+            "category": "deep_work",
+            "timeEstimate": "90 minutes",
+            "whyItMatters": "Uninterrupted focus on high-level AI architecture tasks builds the technical authority required for leadership.",
+            "completed": false,
+            "id": "action-Explorer-0-strategic_deep_work"
+          },
+          {
+            "title": "Leadership Communication Practice",
+            "category": "core_focus",
+            "timeEstimate": "20 minutes",
+            "whyItMatters": "Refining the ability to translate complex technical concepts into business strategy is the hallmark of a leader.",
+            "completed": false,
+            "id": "action-Explorer-1-leadership_communication_practice"
+          },
+          {
+            "title": "Financial Ledger Review",
+            "category": "habit",
+            "timeEstimate": "10 minutes",
+            "whyItMatters": "Maintains awareness of cash flow and investment velocity, keeping financial sovereignty as a subconscious priority.",
+            "completed": false,
+            "id": "action-Explorer-2-financial_ledger_review"
+          },
+          {
+            "title": "Insight Synthesis Journaling",
+            "category": "evening_winddown",
+            "timeEstimate": "15 minutes",
+            "whyItMatters": "Reflecting on daily interactions and technical hurdles accelerates the learning loop and builds self-awareness.",
+            "completed": false,
+            "id": "action-Explorer-3-insight_synthesis_journaling"
+          }
+        ],
+        "dailyStreak": 1,
+        "chatHistory": [
+          {
+            "id": "chat-init-1788701905369",
+            "sender": "coach",
+            "text": "Greetings Explorer! I have analyzed your aspirations and structured your Long-Term Strategic Roadmap alongside your Daily Non-Negotiables. Every great summit is climbed one conscious step at a time. Review your roadmap and let's execute today!",
+            "timestamp": "2026-09-06T13:38:25.369Z"
+          }
+        ],
+        "lastDailyCompletedDate": "2026-09-06"
+      },
+      "longTermGoals": {
+        "primaryAppGoal": "Use Vita to sustain continuous physical vitality, master Software Engineering, and achieve career autonomy.",
+        "careerGoal": "Scale leadership in Build Scalable Startup / Venture",
+        "healthGoal": "Optimize vessel: Build Lean Muscle & Strength",
+        "skillsGoal": "Deepen deliberate mastery in Software Engineering & Product Management.",
+        "lifestyleGoal": "Establish sovereign morning routines, deep presence, and work-life harmony.",
+        "createdAt": "2026-09-06T13:28:12.947Z",
+        "age": 25,
+        "skills": "Software Engineering, Product Management, AI & Data Science",
+        "lifestyle": "Desk & Screen Worker",
+        "healthBaseline": "Build Lean Muscle & Strength",
+        "careerBaseline": "Build Scalable Startup / Venture",
+        "calibratedAt": "2026-09-06T13:38:09.187Z"
+      },
+      "userProfile": {
+        "age": 25,
+        "name": "Explorer",
+        "username": "Explorer",
+        "email": "explorer@vita.io",
+        "longTermGoals": {
+          "primaryAppGoal": "Use Vita to sustain continuous physical vitality, master Software Engineering, and achieve career autonomy.",
+          "careerGoal": "Scale leadership in Build Scalable Startup / Venture",
+          "healthGoal": "Optimize vessel: Build Lean Muscle & Strength",
+          "skillsGoal": "Deepen deliberate mastery in Software Engineering & Product Management.",
+          "lifestyleGoal": "Establish sovereign morning routines, deep presence, and work-life harmony.",
+          "createdAt": "2026-09-06T13:28:12.947Z",
+          "age": 25,
+          "skills": "Software Engineering, Product Management, AI & Data Science",
+          "lifestyle": "Desk & Screen Worker",
+          "healthBaseline": "Build Lean Muscle & Strength",
+          "careerBaseline": "Build Scalable Startup / Venture",
+          "calibratedAt": "2026-09-06T13:38:09.187Z"
+        },
+        "isOnboarded": true
+      }
     },
-    {
-      "id": "log-18a",
-      "date": "2026-07-18",
-      "type": "mba",
-      "title": "GMAT Quant Prep Sprint",
-      "detail": "Completed 15 hard data sufficiency problems. Reviewed error logs."
-    },
-    {
-      "id": "log-18b",
-      "date": "2026-07-18",
-      "type": "mind",
-      "title": "Sun meditation session",
-      "detail": "20 minutes mindfulness on sensory touch, feeling the heat."
-    },
-    {
-      "id": "log-17a",
-      "date": "2026-07-17",
-      "type": "nutrition",
-      "title": "High Protein Saturation",
-      "detail": "Logged 182g protein. Controlled biriyani intake with double whey."
-    },
-    {
-      "id": "log-17b",
-      "date": "2026-07-17",
-      "type": "music",
-      "title": "FL Studio Progressive Track",
-      "detail": "Laid down progressive chord sequence at 128 BPM. Exported demo."
-    },
-    {
-      "id": "log-16",
-      "date": "2026-07-16",
-      "type": "reading",
-      "title": "Principles Chapter 4",
-      "detail": "Ray Dalio's principles. Outlined believability-weighted decisions."
-    },
-    {
-      "id": "log-15",
-      "date": "2026-07-15",
-      "type": "finance",
-      "title": "Systematic Investment SIP",
-      "detail": "Allocated ₹35,000 into dynamic index funds on auto-debit."
-    },
-    {
-      "id": "log-14",
-      "date": "2026-07-14",
-      "type": "mba",
-      "title": "GMAT Sentence Correction",
-      "detail": "Analyzed 10 hard sentence correction problems down to grammatical roots."
-    },
-    {
-      "id": "log-13",
-      "date": "2026-07-13",
-      "type": "mind",
-      "title": "Vipassana awareness index",
-      "detail": "Sustained 20 mins morning breath check. Highly present."
-    },
-    {
-      "id": "1",
-      "date": "2026-07-08",
-      "type": "fitness",
-      "title": "Spider-Man Physique Plan A",
-      "detail": "Squats 4x10 @ 100kg, Shoulder rehab protocols completed."
-    },
-    {
-      "id": "2",
-      "date": "2026-07-08",
-      "type": "nutrition",
-      "title": "Lean Bulk Day 12",
-      "detail": "Consumed 180g protein, 3100 kcal, clean source macros."
-    },
-    {
-      "id": "3",
-      "date": "2026-07-07",
-      "type": "mind",
-      "title": "Vipassana Practice",
-      "detail": "25 min morning awareness meditation on breath (Anapana)."
+    "melchipersonal123": {
+      "metrics": {
+        "weight": 0,
+        "bodyFat": 0,
+        "protein": 0,
+        "calories": 0,
+        "sleep": 0,
+        "recovery": 0,
+        "money": 0,
+        "mood": 8,
+        "hairGrowth": "Healthy",
+        "reading": 0,
+        "musicBPM": 120,
+        "sportsHours": 0,
+        "travelCountries": 0,
+        "meditation": 0,
+        "water": 0,
+        "coffee": 0,
+        "mbaHours": 0,
+        "learning": "Deep cognitive mastery and delib",
+        "projects": "Scale career impact, leadership,"
+      },
+      "historyLogs": [
+        {
+          "id": "log-init-1789467004173",
+          "date": "2026-09-15",
+          "type": "mind",
+          "title": "Vita Life Architecture Initialized",
+          "detail": "Universal profile calibrated for melchipersonal123. Long-term primary vision: Scale career impact, leadership, and financial sovereignty & Build peak physical vitality, strength, and longevity."
+        }
+      ],
+      "challenges": [
+        {
+          "id": "c-health-1",
+          "module": "fitness",
+          "title": "Physical Vitality Foundation",
+          "desc": "Execute 14 consecutive days of dedicated movement & clean nutrition: Build peak physical vitality, strength, and longevity",
+          "progress": 0,
+          "total": 14,
+          "completed": false
+        },
+        {
+          "id": "c-skill-1",
+          "module": "mba",
+          "title": "Cognitive Mastery Sprint",
+          "desc": "Complete 20 focused hours of deliberate study: Deep cognitive mastery and deliberate high-leverage skill acquisition",
+          "progress": 0,
+          "total": 20,
+          "completed": false
+        },
+        {
+          "id": "c-career-1",
+          "module": "career",
+          "title": "Career Architecture Leap",
+          "desc": "Execute 10 high-leverage milestones toward: Scale career impact, leadership, and financial sovereignty",
+          "progress": 0,
+          "total": 10,
+          "completed": false
+        }
+      ],
+      "goals": [
+        {
+          "id": "g-health",
+          "module": "fitness",
+          "title": "Build peak physical vitality, strength, and longevity",
+          "status": "In Progress"
+        },
+        {
+          "id": "g-career",
+          "module": "career",
+          "title": "Scale career impact, leadership, and financial sovereignty",
+          "status": "In Progress"
+        },
+        {
+          "id": "g-skills",
+          "module": "mba",
+          "title": "Deep cognitive mastery and deliberate high-leverage skill acquisition",
+          "status": "In Progress"
+        },
+        {
+          "id": "g-lifestyle",
+          "module": "mind",
+          "title": "Peace of mind, sovereign freedom, and work-life harmony",
+          "status": "In Progress"
+        }
+      ],
+      "habits": [
+        {
+          "id": "h1",
+          "title": "Daily Movement & Nutrition 🏋️",
+          "streak": 0,
+          "lastCheckedDate": "",
+          "history": {},
+          "createdAt": "2026-09-15"
+        },
+        {
+          "id": "h2",
+          "title": "Cognitive Deep Study (45m) 📚",
+          "streak": 0,
+          "lastCheckedDate": "",
+          "history": {},
+          "createdAt": "2026-09-15"
+        },
+        {
+          "id": "h3",
+          "title": "Career & Project Sprint 🚀",
+          "streak": 0,
+          "lastCheckedDate": "",
+          "history": {},
+          "createdAt": "2026-09-15"
+        },
+        {
+          "id": "h4",
+          "title": "Mindfulness & Stillness 🧘",
+          "streak": 0,
+          "lastCheckedDate": "",
+          "history": {},
+          "createdAt": "2026-09-15"
+        }
+      ],
+      "scheduledTasks": [],
+      "aiDailyGoals": [
+        {
+          "id": "dg1",
+          "title": "Advance physical health: Build peak physical vitality, strength, and longevity",
+          "completed": false,
+          "type": "fitness",
+          "reason": "Consistent daily compounding builds high physical energy."
+        },
+        {
+          "id": "dg2",
+          "title": "Dedicate 45 mins to deliberate study: Deep cognitive mastery and deliberate high-leverage skill acquisition",
+          "completed": false,
+          "type": "mba",
+          "reason": "Daily high-focus sprints accelerate intellectual leverage."
+        },
+        {
+          "id": "dg3",
+          "title": "Execute core career milestone: Scale career impact, leadership, and financial sovereignty",
+          "completed": false,
+          "type": "productivity",
+          "reason": "Direct progress toward your primary career milestones."
+        },
+        {
+          "id": "dg4",
+          "title": "Practice 10 mins of intentional reflection & recovery",
+          "completed": false,
+          "type": "mind",
+          "reason": "Restores clarity, reduces cognitive fatigue, and anchors focus."
+        }
+      ],
+      "zeroTrackers": [
+        {
+          "id": "zt-1",
+          "title": "Procrastination / off-target friction",
+          "currentValue": 0,
+          "unit": "times",
+          "category": "productivity",
+          "reason": "Protects deep work flow and sovereign time.",
+          "targetValue": 0
+        },
+        {
+          "id": "zt-2",
+          "title": "Processed food & refined sugars",
+          "currentValue": 0,
+          "unit": "servings",
+          "category": "nutrition",
+          "reason": "Preserves stable glucose & cellular vitality.",
+          "targetValue": 0
+        },
+        {
+          "id": "zt-3",
+          "title": "Aimless screen & social scrolling",
+          "currentValue": 0,
+          "unit": "mins",
+          "category": "mind",
+          "reason": "Guards neural bandwidth against cognitive decay.",
+          "targetValue": 0
+        }
+      ],
+      "mountainState": {
+        "characterName": "melchipersonal123",
+        "level": 1,
+        "lifetimeAltitudeMeters": 0,
+        "lifetimeExpeditionsCount": 1,
+        "completedGoalsCount": 0,
+        "equipmentLevel": 1,
+        "inCampMode": false,
+        "campReason": "",
+        "currentExpedition": {
+          "id": "exp-1789467004173",
+          "expeditionNumber": "EXPEDITION 01",
+          "title": "EXPEDITION 01 · NEW HORIZONS",
+          "monthYear": "September 2026",
+          "targetAltitudeMeters": 5000,
+          "currentAltitudeMeters": 0,
+          "completed": false,
+          "checkpoints": [
+            {
+              "id": "cp-1",
+              "title": "BASE CAMP",
+              "subtitle": "Baseline & Goal Alignment",
+              "altitudeMeters": 0,
+              "weekNumber": 1,
+              "completed": true,
+              "tasksCount": 3,
+              "completedTasksCount": 3,
+              "goalPeriod": "weekly",
+              "goalsList": [
+                "Calibrate Vita Life Blueprint",
+                "Log Initial Metrics",
+                "Establish Core Routines"
+              ]
+            },
+            {
+              "id": "cp-2",
+              "title": "VITALITY RIDGE",
+              "subtitle": "Week 1: Build peak physical vitality, strength, and longevity",
+              "altitudeMeters": 1200,
+              "weekNumber": 1,
+              "completed": false,
+              "tasksCount": 4,
+              "completedTasksCount": 0,
+              "goalPeriod": "weekly",
+              "goalsList": [
+                "Complete 4 Physical Sprints",
+                "Maintain Macro Targets",
+                "Hydrate & Sleep Recovery"
+              ]
+            },
+            {
+              "id": "cp-3",
+              "title": "MASTERY PASS",
+              "subtitle": "Week 2: Deep cognitive mastery and deliberate high-leverage skill acquisition",
+              "altitudeMeters": 2400,
+              "weekNumber": 2,
+              "completed": false,
+              "tasksCount": 4,
+              "completedTasksCount": 0,
+              "goalPeriod": "weekly",
+              "goalsList": [
+                "Log 15 Deep Study Hours",
+                "Master Core Frameworks",
+                "Zero Distraction Study"
+              ]
+            },
+            {
+              "id": "cp-4",
+              "title": "EMPIRE RIDGE",
+              "subtitle": "Week 3: Scale career impact, leadership, and financial sovereignty",
+              "altitudeMeters": 3600,
+              "weekNumber": 3,
+              "completed": false,
+              "tasksCount": 4,
+              "completedTasksCount": 0,
+              "goalPeriod": "weekly",
+              "goalsList": [
+                "Ship Critical Project Milestone",
+                "Expand Sovereign Network",
+                "Strategic Roadmapping"
+              ]
+            },
+            {
+              "id": "cp-5",
+              "title": "SOVEREIGN SUMMIT",
+              "subtitle": "Summit Peak: Scale career impact, leadership, and financial sovereignty & Build peak physical vitality, strength, and longevity",
+              "altitudeMeters": 5000,
+              "weekNumber": 4,
+              "completed": false,
+              "tasksCount": 4,
+              "completedTasksCount": 0,
+              "goalPeriod": "monthly_summit",
+              "goalsList": [
+                "🏆 Master Health: Build peak physical vitality, strength, and longevity",
+                "📚 Master Craft: Deep cognitive mastery and deliberate high-leverage skill acquisition",
+                "💼 Master Career: Scale career impact, leadership, and financial sovereignty",
+                "🕊️ Master Freedom: Peace of mind, sovereign freedom, and work-life harmony"
+              ]
+            }
+          ],
+          "categories": [
+            {
+              "category": "BODY",
+              "title": "Physical Vessel & Power",
+              "icon": "🏋️",
+              "objectives": [
+                {
+                  "id": "b1",
+                  "title": "Advance: Build peak physical vitality, strength, and longevity",
+                  "category": "BODY",
+                  "xp": 50,
+                  "altitudeGainMeters": 200,
+                  "completed": false
+                },
+                {
+                  "id": "b2",
+                  "title": "Log 7 Consecutive Days Nutrition & Sleep",
+                  "category": "BODY",
+                  "xp": 30,
+                  "altitudeGainMeters": 150,
+                  "completed": false
+                }
+              ]
+            },
+            {
+              "category": "SKILLS",
+              "title": "Cognitive Mastery & Learning",
+              "icon": "🧠",
+              "objectives": [
+                {
+                  "id": "s1",
+                  "title": "Master Core Concepts in Deep cognitive mastery and deliberate high-leverage skill acquisition",
+                  "category": "SKILLS",
+                  "xp": 60,
+                  "altitudeGainMeters": 250,
+                  "completed": false
+                },
+                {
+                  "id": "s2",
+                  "title": "Complete 15 Hours Undivided Focus",
+                  "category": "SKILLS",
+                  "xp": 40,
+                  "altitudeGainMeters": 150,
+                  "completed": false
+                }
+              ]
+            },
+            {
+              "category": "BUILD",
+              "title": "Career & Project Architecture",
+              "icon": "🚀",
+              "objectives": [
+                {
+                  "id": "u1",
+                  "title": "Deliver Milestone for Scale career impact, leadership, and financial sovereignty",
+                  "category": "BUILD",
+                  "xp": 80,
+                  "altitudeGainMeters": 300,
+                  "completed": false
+                }
+              ]
+            }
+          ]
+        },
+        "guideLogs": [
+          {
+            "id": "g-log-1789467004173",
+            "timestamp": "2026-09-15 10:10",
+            "role": "guide",
+            "text": "Welcome to Vita, melchipersonal123. Your ascent route has been aligned with your life blueprint: Scale career impact, leadership, and financial sovereignty & Build peak physical vitality, strength, and longevity. You start at Base Camp (0m). Every aligned action lifts you higher toward the Summit.",
+            "actionType": "encouragement"
+          }
+        ],
+        "dailySteps": [
+          {
+            "id": "ds-1",
+            "title": "🏋️ Health: Build peak physical vitality, strength, ",
+            "category": "BODY",
+            "xp": 40,
+            "altitudeGainMeters": 120,
+            "completed": false
+          },
+          {
+            "id": "ds-2",
+            "title": "📚 Skills: Deep cognitive mastery and deliberate hi",
+            "category": "SKILLS",
+            "xp": 40,
+            "altitudeGainMeters": 120,
+            "completed": false
+          },
+          {
+            "id": "ds-3",
+            "title": "🚀 Career: Scale career impact, leadership, and fin",
+            "category": "BUILD",
+            "xp": 40,
+            "altitudeGainMeters": 120,
+            "completed": false
+          },
+          {
+            "id": "ds-4",
+            "title": "🧘 Mind: Breath awareness & stillness",
+            "category": "MIND",
+            "xp": 30,
+            "altitudeGainMeters": 90,
+            "completed": false
+          }
+        ]
+      },
+      "todayPlan": {
+        "focus": "Anchor today around: Scale career impact, leadership, and financial sovereignty & Build peak physical vitality, strength, and longevity. Balance physical vitality, deep study, and meaningful career velocity.",
+        "wins": [
+          "Commenced fresh Vita Life Architecture journey."
+        ],
+        "risks": [
+          "Avoid context switching; prioritize your primary daily pillars."
+        ],
+        "suggestions": [
+          "Hydrate early and set clear intention for the day.",
+          "Dedicate your peak cognitive window to Deep cognitive mastery and deliberate high-leverage skill acquisition."
+        ],
+        "balanceScore": 75
+      },
+      "categoryPlans": [
+        {
+          "category": "fitness",
+          "title": "Fitness & Physical Vessel",
+          "icon": "🏋️",
+          "status": "Target: Build peak physical vitality, strength, and longevity",
+          "mission": "Establish baseline physical metrics and execute today's training.",
+          "recommendation": "Prioritize nutrient-dense whole foods and consistent sleep cycles.",
+          "weeklyReview": "Clean slate initialized. Ready for initial measurement logs.",
+          "monthlyReview": "Formulating primary physical progression roadmap.",
+          "predictions": "Consistent tracking correlates directly with progressive body composition gains.",
+          "actionBtnText": "Log Workout & Weight"
+        },
+        {
+          "category": "mba",
+          "title": "Cognitive Mastery & Learning",
+          "icon": "🧠",
+          "status": "Focus: Deep cognitive mastery and deliberate high-leverage skill acquisition",
+          "mission": "Execute daily deep study block.",
+          "recommendation": "Focus on understanding core first principles rather than superficial memorization.",
+          "weeklyReview": "Study schedule calibrated to long-term goals.",
+          "monthlyReview": "Milestones defined for cognitive expansion.",
+          "predictions": "Daily 45-minute focused sprints yield compound intellectual momentum.",
+          "actionBtnText": "Start Study Session"
+        },
+        {
+          "category": "career",
+          "title": "Career & Empire Building",
+          "icon": "💼",
+          "status": "Objective: Scale career impact, leadership, and financial sovereignty",
+          "mission": "Ship the next high-leverage deliverable for your primary project.",
+          "recommendation": "Focus on actions that directly increase agency, leverage, and sovereign revenue.",
+          "weeklyReview": "Trajectory aligned with long-term strategic vision.",
+          "monthlyReview": "Executive roadmapping active.",
+          "predictions": "Strategic consistency compounds disproportionately over 6-month horizons.",
+          "actionBtnText": "Review Career Plan"
+        },
+        {
+          "category": "mind",
+          "title": "Mindfulness & Stillness",
+          "icon": "🧘",
+          "status": "Anchor: Peace of mind, sovereign freedom, and work-life harmony",
+          "mission": "Cultivate 15 minutes of uninterrupted silence and mental clarity.",
+          "recommendation": "Notice the breath and observe sensations without judgment.",
+          "weeklyReview": "Mental clarity practices calibrated.",
+          "monthlyReview": "Inner resilience foundation established.",
+          "predictions": "Daily mindfulness practice reduces reactive decision-making by 35%.",
+          "actionBtnText": "Begin Meditation"
+        },
+        {
+          "category": "finance",
+          "title": "Zen Financial Sovereignty",
+          "icon": "💰",
+          "status": "Target: Financial Independence & Prudent Allocation",
+          "mission": "Track all daily outflows and maintain high savings rate.",
+          "recommendation": "Automate investments and protect cash flow reserves.",
+          "weeklyReview": "Budget baseline established.",
+          "monthlyReview": "Wealth accumulation model active.",
+          "predictions": "Consistent cash flow discipline accelerates sovereign autonomy.",
+          "actionBtnText": "Log Financial Status"
+        },
+        {
+          "category": "productivity",
+          "title": "Deep Productivity",
+          "icon": "⚡",
+          "status": "Focus: Zero Waste & High Leverage",
+          "mission": "Eliminate low-value tasks and protect uninterrupted deep work blocks.",
+          "recommendation": "Group shallow administrative tasks into a single batch at end of day.",
+          "weeklyReview": "Time allocation audit complete.",
+          "monthlyReview": "System efficiency baseline set.",
+          "predictions": "Protecting 90-minute morning focus blocks multiplies creative output 3x.",
+          "actionBtnText": "Review Time Audit"
+        },
+        {
+          "category": "hair",
+          "title": "Hair Vitality Protocol",
+          "icon": "✨",
+          "status": "Target: Scalp Circulation & Cellular Density",
+          "mission": "Execute daily microneedling, scalp massage, and essential nutrient intake.",
+          "recommendation": "Combine rosemary oil application with 5 minutes of inversion therapy.",
+          "weeklyReview": "Follicle stimulation regimen active.",
+          "monthlyReview": "Density progression monitoring.",
+          "predictions": "Daily consistency over 90 days optimizes cellular microcirculation.",
+          "actionBtnText": "Log Hair Routine"
+        },
+        {
+          "category": "music",
+          "title": "Sonic Expression & Flow",
+          "icon": "🎵",
+          "status": "Focus: Creative Flow & BPM Synchronization",
+          "mission": "Engage in 20 minutes of acoustic immersion or music production.",
+          "recommendation": "Use binaural beats (theta waves 6Hz) during creative ideation sessions.",
+          "weeklyReview": "Sonic soundscapes indexed.",
+          "monthlyReview": "Creative frequency aligned.",
+          "predictions": "Musical expression activates diffuse mode neural network integration.",
+          "actionBtnText": "Open Sonic Mandala"
+        }
+      ],
+      "metricsByDate": {},
+      "plansByDate": {},
+      "conversations": []
     }
-  ],
-  "challenges": [
-    {
-      "id": "c1",
-      "module": "fitness",
-      "title": "Iron Boulder Shoulders",
-      "desc": "Complete 14 consecutive days of shoulder rehab and structural correction.",
-      "progress": 8,
-      "total": 14,
-      "completed": false
-    },
-    {
-      "id": "c2",
-      "module": "mba",
-      "title": "GMAT Verbal Sprint",
-      "desc": "Analyze 50 hard sentence correction problems.",
-      "progress": 32,
-      "total": 50,
-      "completed": false
-    },
-    {
-      "id": "c3",
-      "module": "finance",
-      "title": "Invest First Mode",
-      "desc": "Allocate 40% of monthly revenue directly into index funds and digital assets.",
-      "progress": 100,
-      "total": 100,
-      "completed": true
-    }
-  ],
-  "goals": [
-    {
-      "id": "g1",
-      "module": "fitness",
-      "title": "Achieve Single-Digit Body Fat",
-      "status": "In Progress"
-    },
-    {
-      "id": "g2",
-      "module": "career",
-      "title": "Launch Jacked Buddha OS v1.0",
-      "status": "In Progress"
-    },
-    {
-      "id": "g3",
-      "module": "mba",
-      "title": "Score 740+ GMAT / 99%ile CAT",
-      "status": "In Progress"
-    }
-  ],
+  },
   "conversations": [],
   "metricsByDate": {},
   "plansByDate": {},
-  "habits": [
-    {
-      "id": "h1",
-      "title": "Cold Shower 🥶",
-      "streak": 5,
-      "lastCheckedDate": "2026-07-17",
-      "history": {
-        "2026-07-17": true,
-        "2026-07-16": true,
-        "2026-07-15": true,
-        "2026-07-14": true,
-        "2026-07-13": true
-      },
-      "createdAt": "2026-07-01"
-    },
-    {
-      "id": "h2",
-      "title": "Reading 10 pages 📚",
-      "streak": 3,
-      "lastCheckedDate": "2026-07-17",
-      "history": {
-        "2026-07-17": true,
-        "2026-07-16": true,
-        "2026-07-15": true
-      },
-      "createdAt": "2026-07-01"
-    },
-    {
-      "id": "h3",
-      "title": "No Sugar / Clean Diet 🥗",
-      "streak": 12,
-      "lastCheckedDate": "2026-07-17",
-      "history": {
-        "2026-07-17": true,
-        "2026-07-16": true,
-        "2026-07-15": true,
-        "2026-07-14": true,
-        "2026-07-13": true,
-        "2026-07-12": true,
-        "2026-07-11": true,
-        "2026-07-10": true,
-        "2026-07-09": true,
-        "2026-07-08": true,
-        "2026-07-07": true,
-        "2026-07-06": true
-      },
-      "createdAt": "2026-07-01"
-    }
-  ],
-  "scheduledTasks": [],
-  "aiDailyGoals": [
-    {
-      "id": "dg1",
-      "title": "Target absolute zero pending tasks by 10 PM",
-      "completed": false,
-      "type": "productivity",
-      "reason": "Minimizes cognitive baggage and promotes optimal neural sleep states."
-    },
-    {
-      "id": "dg2",
-      "title": "Apply Minoxidil and massage scalp for 5 mins",
-      "completed": false,
-      "type": "hair",
-      "reason": "Treatment continuity protects follicular density."
-    },
-    {
-      "id": "dg3",
-      "title": "Substitute heavy overhead press with slow-motion face pulls",
-      "completed": false,
-      "type": "fitness",
-      "reason": "Shoulder rotator-cuff active rehab ensures joint preservation."
-    },
-    {
-      "id": "dg4",
-      "title": "Analyze 5 sentence correction error loops under full morning focus",
-      "completed": false,
-      "type": "mba",
-      "reason": "Early Verbal discipline builds an elite mock readiness framework."
-    }
-  ],
-  "zeroTrackers": [
-    {
-      "id": "zt-1",
-      "title": "Junk food / Empty sugar intake",
-      "currentValue": 2,
-      "unit": "times",
-      "category": "nutrition",
-      "reason": "Maintain precise glucose-optimized bio-fueling.",
-      "targetValue": 0
-    },
-    {
-      "id": "zt-2",
-      "title": "GMAT Sentence Correction error backlog",
-      "currentValue": 3,
-      "unit": "questions",
-      "category": "mba",
-      "reason": "Zero errors represents flawless verbal mastery.",
-      "targetValue": 0
-    },
-    {
-      "id": "zt-3",
-      "title": "Overhead heavy presses done (Shoulder strain)",
-      "currentValue": 1,
-      "unit": "reps",
-      "category": "fitness",
-      "reason": "Avoid mechanical impingement until the rotator cuff is fully rehabbed.",
-      "targetValue": 0
-    },
-    {
-      "id": "zt-4",
-      "title": "Mindless screen scrolling",
-      "currentValue": 15,
-      "unit": "mins",
-      "category": "mind",
-      "reason": "Zero friction, high presence, zero time decay.",
-      "targetValue": 0
-    }
-  ],
-  "todayPlan": {
-    "focus": "Sustain MBA focus sprints, perform shoulder-safe active rehab routines, and align protein macros.",
-    "wins": [
-      "Logged 14 days active meditation streak.",
-      "48 total hours logged of high-intensity GMAT prep."
-    ],
-    "risks": [
-      "Under-sleeping risks GMAT retention capacity. Guard midnight window.",
-      "Excess shoulder strain will delay rehab progression."
-    ],
-    "suggestions": [
-      "Spend ₹0 today to lock in savings velocity.",
-      "Substitute heavy overhead press drills with cable rehab pulls."
-    ],
-    "balanceScore": 84
-  },
-  "categoryPlans": [
-    {
-      "category": "fitness",
-      "title": "Fitness & Physique",
-      "icon": "💪",
-      "status": "Weight: 82.5kg | Body Fat: 14.2% | Shoulder: Sore",
-      "mission": "Lower-body squat power drills and active rotator cuff structural rehab.",
-      "recommendation": "Limit overhead presses. Complete 3 sets of 15 face pulls with slow eccentric phase.",
-      "weeklyReview": "Completed 3 full sessions. Shoulder rehab frequency is 80%.",
-      "monthlyReview": "Body fat index decreased slightly (-0.4%). Strength levels are maintained on compound lower body lifts.",
-      "predictions": "If shoulder load threshold is maintained below 40kg, recovery to 100% is predicted within 18 days.",
-      "actionBtnText": "Log Shoulder Rehab Work"
-    },
-    {
-      "category": "nutrition",
-      "title": "Nutrition & Alchemist Macros",
-      "icon": "🥗",
-      "status": "Protein: 165g logged | Coffee: 2 cups | Water: 3.2L",
-      "mission": "Secure 180g pure protein. Teaches moderation of comfort foods (Biriyani, California Burrito).",
-      "recommendation": "Do not ban biriyani. Pair a half portion with a double-scoop whey isolate shake to hit macros without calorie overflow.",
-      "weeklyReview": "Average protein: 172g. Water hydration index has reached perfect saturation (3.2L/day).",
-      "monthlyReview": "Caloric intake averages 2,850 kcal. Fat mass is stable with active lean mass accretion.",
-      "predictions": "Continuing at 170g+ protein will ensure preservation of lean mass during calorie deficit cycles.",
-      "actionBtnText": "Add Protein Log"
-    },
-    {
-      "category": "mba",
-      "title": "MBA Prep & GMAT Strategy",
-      "icon": "🎓",
-      "status": "Prep Time: 48 Hours Logged | Focus: GMAT Verbal Sentence Correction",
-      "mission": "Deconstruct 15 elite sentence correction questions down to grammatical roots.",
-      "recommendation": "Use error log analysis. Spend 10 minutes analyzing every wrong answer rather than rushing new questions.",
-      "weeklyReview": "Completed 12 hours of deep cognitive studies. Error log up to date.",
-      "monthlyReview": "Verbal sub-score simulated at 40 (90th percentile). Quant tracking at 49.",
-      "predictions": "Consistent daily 3.5-hour blocks estimate a mock test score of 740+ by late August.",
-      "actionBtnText": "Solve GMAT Prep Drill"
-    },
-    {
-      "category": "finance",
-      "title": "Finance & Wealth Reserves",
-      "icon": "📈",
-      "status": "Total Reserves: ₹4,50,000 | Daily spending trajectory: Conservative",
-      "mission": "Commit to a ₹0 spend day to balance yesterday's restaurant outing.",
-      "recommendation": "Set auto-debits for systematic mutual fund allocations directly on payroll date to remove friction.",
-      "weeklyReview": "Weekly savings rate reached 42%. Discretionary luxury budget reduced by 15%.",
-      "monthlyReview": "Sovereign reserves pool increased by ₹35,000 via systematic investment algorithms.",
-      "predictions": "Sustained savings speed projects ₹6,00,000 in liquid reserves prior to GMAT admissions phase.",
-      "actionBtnText": "Record Expense Log"
-    },
-    {
-      "category": "travel",
-      "title": "Travel & Exploration",
-      "icon": "🏍️",
-      "status": "Active Routes: Da Nang Coastal Loop & Sri Lanka Hill Country planning",
-      "mission": "Cross-verify motorcycle rental specs and rain gear for mountain passes.",
-      "recommendation": "Plan Da Nang mountain rides strictly during 6:00 AM - 10:00 AM to avoid convective downpours.",
-      "weeklyReview": "Gear checklist completed. Route coordinates saved offline.",
-      "monthlyReview": "Successfully navigated the coastal pass. Logged 250km of mountain topography.",
-      "predictions": "Exploring high-altitude terrain correlates with a 2-point increase in Melchi's mood index.",
-      "actionBtnText": "Check Route Checklist"
-    },
-    {
-      "category": "music",
-      "title": "Music & Sonic Synthesis",
-      "icon": "🎹",
-      "status": "FL Studio Projects: 2 active | Target BPM: 128 (Progressive Loop)",
-      "mission": "Compose a custom 4-bar progressive chord sequence using modular synthesis.",
-      "recommendation": "Limit session to 45 minutes to avoid cognitive fatigue. Treat music purely as stress dissipation.",
-      "weeklyReview": "Completed 1 master loop. Track export successful.",
-      "monthlyReview": "Acoustic ideas diary has 4 new raw entries. Chord resolution is improving.",
-      "predictions": "Creating sound waves late-afternoon reduces cortisol metrics by 14% prior to evening study blocks.",
-      "actionBtnText": "Start FL Studio Jam"
-    },
-    {
-      "category": "sports",
-      "title": "Sports & Athletics",
-      "icon": "🏸",
-      "status": "Sports hours: 2.5 hrs/week | Sports: Badminton & Football",
-      "mission": "Rest day. No high-impact running to support shoulder and ankle joints.",
-      "recommendation": "Substitute matchplay with light ankle mobility drills and dynamic stretch protocols.",
-      "weeklyReview": "Logged 2.5 hours of high-intensity court play. Cardiovascular output peaked at 178 BPM.",
-      "monthlyReview": "Footwork speed improved. Agility index remains top-tier.",
-      "predictions": "Two tactical badminton sessions per week sustain perfect cardiovascular reserves.",
-      "actionBtnText": "Schedule Match Slot"
-    },
-    {
-      "category": "reading",
-      "title": "Reading & Scholar Deep Work",
-      "icon": "📚",
-      "status": "Book: Principles by Ray Dalio | Pages read today: 15 pages",
-      "mission": "Read Chapter 4 of Ray Dalio's Principles. Take margin notes on 'believability-weighted' decisions.",
-      "recommendation": "Keep the physical book on your GMAT study desk to eliminate phone distraction.",
-      "weeklyReview": "Read 45 pages. Extracted 3 high-leverage frameworks into personal second brain notes.",
-      "monthlyReview": "Completed 1 full book on cognitive frameworks. System integration complete.",
-      "predictions": "Sustained reading habit expands cognitive capacity and verbal fluency for GMAT comprehension by 12%.",
-      "actionBtnText": "Record Book Pages"
-    },
-    {
-      "category": "faith",
-      "title": "Faith & Inner Spirit",
-      "icon": "🕊️",
-      "status": "Daily gratitude check: Active | Vipassana Alignment: True",
-      "mission": "List 3 specific things Melchi is grateful for before going to sleep.",
-      "recommendation": "Acknowledge the gift of a functional body, sharp mind, and high-agency choices.",
-      "weeklyReview": "Logged 6 gratitude entries. Mental stress marker reduced by 25%.",
-      "monthlyReview": "Sustained daily spiritual reflection. Inner core remains resilient to workplace stressors.",
-      "predictions": "Ending the day with intentional positive reflections reduces sleep onset latency by 12 minutes.",
-      "actionBtnText": "Record Gratitude"
-    },
-    {
-      "category": "productivity",
-      "title": "Deep Productivity",
-      "icon": "⏱️",
-      "status": "Daily Focus Score: 91% | Pomodoro cycles: 4 completed",
-      "mission": "Execute three 50-minute zero-interruption study blocks today.",
-      "recommendation": "Turn off all phone notifications and place it in another room during cognitive sprints.",
-      "weeklyReview": "Completed 18 highly focused Pomodoro cycles. Deep work total: 15 hours.",
-      "monthlyReview": "Overall productivity is optimal. Average daily cognitive focus is at 4.2 hours.",
-      "predictions": "Guarding morning blocks with phone-disabled rules increases deep-study velocity by 33%.",
-      "actionBtnText": "Start Deep Work Timer"
-    },
-    {
-      "category": "hair",
-      "title": "Hair & Follicle Aesthetics",
-      "icon": "💇‍♂️",
-      "status": "Treatment: Clinical Minoxidil | Health Status: Healthy Density",
-      "mission": "Apply standard topical treatment solution before midnight sleep.",
-      "recommendation": "Pair topical solution with circular scalp massages to maximize local blood circulation.",
-      "weeklyReview": "Treatment continuity maintained at 100% (7/7 days). No missed applications.",
-      "monthlyReview": "Follicular density is stable. Hair shafts display rich pigmentation and structure.",
-      "predictions": "Sustained treatment continuity guarantees zero hair loss and preserves 100% density over next 12 months.",
-      "actionBtnText": "Log Treatment Application"
-    }
-  ]
+  "users": [],
+  "weeklySummaries": []
 }

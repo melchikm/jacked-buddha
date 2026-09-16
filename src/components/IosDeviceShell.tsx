@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { sound } from "../utils/soundEngine";
+import { getTimeGreeting } from "../utils/timeEngine";
 
 // Sub-views
 import FoodGoalsView from "./FoodGoalsView";
@@ -27,9 +28,13 @@ import TravelChroniclesView from "./TravelChroniclesView";
 import FaithDevotionView from "./FaithDevotionView";
 import NatureImmersionView from "./NatureImmersionView";
 import AICouncilRoom from "./AICouncilRoom";
+import LifeCoachDashboard from "./LifeCoachDashboard";
 import ProactiveReview from "./ProactiveReview";
 import TimelineLogs from "./TimelineLogs";
 import ArchitectStudio from "./ArchitectStudio";
+import SovereignCalendarView from "./SovereignCalendarView";
+import MountainOfLifeView from "./MountainOfLifeView";
+import DailySovereignRoutine from "./DailySovereignRoutine";
 
 export interface IosDeviceShellProps {
   user: UserProfile;
@@ -37,6 +42,7 @@ export interface IosDeviceShellProps {
   theme: "bright" | "dark";
   soundEnabled: boolean;
   saveStatus?: "idle" | "saving" | "saved" | "error";
+  lastSyncedAt?: Date | null;
   onToggleTheme: () => void;
   onToggleSound: () => void;
   onLogout: () => void;
@@ -45,6 +51,7 @@ export interface IosDeviceShellProps {
   onUpdateState: (newState: Partial<DBState>) => void;
   onToggleLayoutMode: () => void;
   onSave?: () => void;
+  onResetAll?: () => void;
 }
 
 export default function IosDeviceShell({
@@ -53,6 +60,7 @@ export default function IosDeviceShell({
   theme,
   soundEnabled,
   saveStatus = "idle",
+  lastSyncedAt,
   onToggleTheme,
   onToggleSound,
   onLogout,
@@ -60,7 +68,8 @@ export default function IosDeviceShell({
   onAddHistoryLog,
   onUpdateState,
   onToggleLayoutMode,
-  onSave
+  onSave,
+  onResetAll
 }: IosDeviceShellProps) {
   const [iosTab, setIosTab] = useState<"dashboard" | "oracle" | "logs" | "library" | "controls">("dashboard");
   const [iosActiveApp, setIosActiveApp] = useState<string>("none");
@@ -89,10 +98,15 @@ export default function IosDeviceShell({
   const [rebooting, setRebooting] = useState<boolean>(false);
   const [bootStep, setBootStep] = useState<number>(0);
 
+  const activeUserName = user?.username || user?.name || "Explorer";
+  const activeAIs = (user?.selectedAIs && user.selectedAIs.length > 0) ? user.selectedAIs : (dbState.selectedAIs || []);
+  const hasMbaApp = activeAIs.some(a => a.aiId === "mba" || a.aiId === "cognitive_mba");
+  const hasFitnessApp = activeAIs.some(a => a.aiId === "fitness" || a.aiId === "nutrition");
+
   // Oracle states inside the iOS shell
   const [oraclePrompt, setOraclePrompt] = useState<string>("");
   const [oracleHistory, setOracleHistory] = useState<Array<{ sender: "user" | "buddha"; text: string }>>([
-    { sender: "buddha", text: "Welcome, Melchi. I am your integrated Buddha Core. Ask me any strategic decision matrix query, or report your daily progress." }
+    { sender: "buddha", text: `Welcome, ${user?.username || user?.name || "Explorer"}. I am your integrated Buddha Core. Ask me any strategic decision matrix query, or report your daily progress.` }
   ]);
   const [oracleLoading, setOracleLoading] = useState<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -179,7 +193,7 @@ export default function IosDeviceShell({
         if (data.todayPlan) {
           answer = `### 🧘 Dynamic Alignment Complete\n\n**Strategic Focus:** ${data.todayPlan.focus}\n\n* **Wins:** ${data.todayPlan.wins?.join(", ") || "Maintained discipline."}\n* **Risks:** ${data.todayPlan.risks?.join(", ") || "No immediate risks."}\n* **Coaching Advice:** ${data.todayPlan.suggestions?.[0] || "Continue your path."}\n\n*Current Balance Score: **${data.todayPlan.balanceScore}%***`;
         } else {
-          answer = "I have successfully integrated your update and balanced your operational coordinates, Melchi.";
+          answer = `I have successfully integrated your update and balanced your operational coordinates, ${activeUserName}.`;
         }
         
         setOracleHistory(prev => [...prev, { sender: "buddha", text: answer }]);
@@ -188,7 +202,7 @@ export default function IosDeviceShell({
         throw new Error();
       }
     } catch (e) {
-      setOracleHistory(prev => [...prev, { sender: "buddha", text: "Offline Connection. I have stabilized your metrics in local storage. Focus on your GMAT verbals and Joint Rehabilitation today." }]);
+      setOracleHistory(prev => [...prev, { sender: "buddha", text: "Offline Connection. I have stabilized your metrics in local storage. Focus on your daily sovereign protocols and physical conditioning today." }]);
       triggerNotification("Offline Mode", "Saved to local cache", "💾");
     } finally {
       setOracleLoading(false);
@@ -217,7 +231,7 @@ export default function IosDeviceShell({
           setRebooting(false);
           setIosTab("dashboard");
           setIosActiveApp("none");
-          triggerNotification("Jacked Buddha Core", "System fully rebooted", "⚡");
+          triggerNotification("Vita Core", "System fully rebooted", "⚡");
         }
       }, step.delay);
     });
@@ -225,6 +239,17 @@ export default function IosDeviceShell({
 
   // Helper mapping for App categories inside App Library
   const appLibraryFolders = [
+    {
+      name: "AI & Sovereignty",
+      icon: "🏛️",
+      color: "from-amber-500/10 to-indigo-500/10",
+      apps: [
+        { id: "daily_sovereign_routine", name: "Sovereign Routine", icon: "⚡", color: "bg-amber-500" },
+        { id: "life_coach", name: "AI Life Coach", icon: "🎯", color: "bg-amber-600" },
+        { id: "buddha_sanctuary", name: "AI Council", icon: "🏛️", color: "bg-indigo-600" },
+        { id: "mountain", name: "Mountain Life", icon: "🏔️", color: "bg-amber-700" }
+      ]
+    },
     {
       name: "Physical Vessel",
       icon: "💪",
@@ -240,7 +265,7 @@ export default function IosDeviceShell({
       icon: "🎓",
       color: "from-indigo-500/10 to-purple-500/5",
       apps: [
-        { id: "cognitive_mba", name: "Cognitive MBA", icon: "🎓", color: "bg-indigo-600" },
+        ...(hasMbaApp ? [{ id: "cognitive_mba", name: "Cognitive MBA", icon: "🎓", color: "bg-indigo-600" }] : []),
         { id: "zen_finance", name: "Sovereign Sangha", icon: "📈", color: "bg-emerald-600" },
         { id: "architect", name: "Architect Studio", icon: "⚙️", color: "bg-stone-700" }
       ]
@@ -260,6 +285,8 @@ export default function IosDeviceShell({
       icon: "🕊️",
       color: "from-violet-500/10 to-purple-500/5",
       apps: [
+        { id: "mountain", name: "Mountain of Life", icon: "🏔️", color: "bg-amber-600" },
+        { id: "calendar", name: "Sovereign Calendar", icon: "🗓️", color: "bg-amber-600" },
         { id: "faith_devotion", name: "Noble Path Faith", icon: "🧘", color: "bg-violet-600" },
         { id: "sovereign_journal", name: "Sovereign Journal", icon: "🕉️", color: "bg-purple-700" },
         { id: "review", name: "Proactive Review", icon: "🔎", color: "bg-amber-600" }
@@ -292,7 +319,7 @@ export default function IosDeviceShell({
           </div>
           
           <p className="text-xs leading-relaxed text-slate-400 space-y-2">
-            You are running the high-fidelity <strong>Jacked Buddha iOS 18 Web App</strong>. 
+            You are running the high-fidelity <strong>Vita iOS 18 Web App</strong>. 
             On laptops, this displays an interactive phone enclosure with a reactive <strong>Dynamic Island</strong>, <strong>Control Center</strong>, and <strong>App Library</strong>.
           </p>
 
@@ -393,7 +420,7 @@ export default function IosDeviceShell({
                 setIslandMode("idle");
               } else {
                 // idle click shows quick status expansion
-                triggerNotification("Jacked Buddha OS", "Consistently building. Tap to configure", "🧘");
+                triggerNotification("Vita OS", "Consistently building. Tap to configure", "🧘");
               }
             }}
           >
@@ -647,6 +674,20 @@ export default function IosDeviceShell({
                   {/* App Screen scroll frame */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-transparent">
                     
+                    {iosActiveApp === "daily_sovereign_routine" && (
+                      <DailySovereignRoutine
+                        dbState={dbState}
+                        userName={user?.username || user?.name || "Explorer"}
+                        selectedAIs={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
+                        onUpdateState={onUpdateState}
+                        theme={theme}
+                      />
+                    )}
+
+                    {iosActiveApp === "mountain" && (
+                      <MountainOfLifeView dbState={dbState} onUpdateState={onUpdateState} theme={theme} />
+                    )}
+
                     {iosActiveApp === "fitness_physique" && (
                       <FitnessPhysiqueView metrics={dbState.metrics} onUpdateMetrics={onUpdateMetrics} theme={theme} />
                     )}
@@ -699,8 +740,34 @@ export default function IosDeviceShell({
                       <DailySummaryView dbState={dbState} onUpdateState={onUpdateState} onUpdateMetrics={onUpdateMetrics} theme={theme} />
                     )}
 
+                    {iosActiveApp === "life_coach" && (
+                      <LifeCoachDashboard
+                        user={user}
+                        onLogout={onLogout}
+                        theme={theme === "bright" ? "bright" : "dark"}
+                        onNavigateToView={(view) => setIosActiveApp(view as any)}
+                        onResetAll={onResetAll}
+                      />
+                    )}
+
                     {iosActiveApp === "buddha_sanctuary" && (
-                      <AICouncilRoom metrics={dbState.metrics} theme={theme} />
+                      <AICouncilRoom
+                        metrics={dbState.metrics}
+                        theme={theme}
+                        userGoals={dbState.longTermGoals}
+                        userName={user?.name || user?.username}
+                        onNavigateToView={(view) => setIosActiveApp(view as any)}
+                      />
+                    )}
+
+                    {iosActiveApp === "calendar" && (
+                      <SovereignCalendarView
+                        dbState={dbState}
+                        onUpdateMetrics={onUpdateMetrics}
+                        onAddHistoryLog={onAddHistoryLog}
+                        onUpdateState={onUpdateState}
+                        theme={theme}
+                      />
                     )}
                   </div>
                 </motion.div>
@@ -721,28 +788,41 @@ export default function IosDeviceShell({
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-mono tracking-widest text-slate-500 uppercase">Dharma Operations</span>
                         {onSave && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              sound.playTingsha();
-                              onSave();
-                            }}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                              saveStatus === "saving"
-                                ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30 animate-pulse"
-                                : saveStatus === "saved"
-                                  ? "bg-emerald-500/25 text-emerald-400 border-emerald-500/30"
-                                  : theme === "bright"
-                                    ? "bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200"
-                                    : "bg-stone-800 text-slate-400 border-white/5 hover:bg-stone-700"
-                            }`}
-                          >
-                            <Cloud className="w-2.5 h-2.5" />
-                            <span>{saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved!" : "Sync"}</span>
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                sound.playTingsha();
+                                onSave();
+                              }}
+                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                                saveStatus === "saving"
+                                  ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30 animate-pulse"
+                                  : saveStatus === "saved"
+                                    ? "bg-emerald-500/25 text-emerald-400 border-emerald-500/30"
+                                    : theme === "bright"
+                                      ? "bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200"
+                                      : "bg-stone-800 text-slate-400 border-white/5 hover:bg-stone-700"
+                              }`}
+                            >
+                              <Cloud className="w-2.5 h-2.5" />
+                              <span>{saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved!" : "Sync"}</span>
+                            </button>
+                            {lastSyncedAt && (
+                              <span className="text-[9px] font-mono text-emerald-400 flex items-center gap-1 opacity-90">
+                                <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                                <span>{lastSyncedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
-                      <h2 className={`text-2xl font-black font-display tracking-tight leading-none ${theme === "bright" ? "text-stone-900" : "text-white"}`}>Jacked Buddha</h2>
+                      <h2 className={`text-2xl font-black font-display tracking-tight leading-none ${theme === "bright" ? "text-stone-900" : "text-white"}`}>
+                        {getTimeGreeting().greeting}, {user?.name || user?.username || "Friend"}
+                      </h2>
+                      <span className="text-[10px] font-sans text-slate-400 block mt-0.5">
+                        {getTimeGreeting().emoji} {getTimeGreeting().phaseLabel} • Vita Core
+                      </span>
                     </div>
                     <div className="text-right">
                       <span className="text-[10px] uppercase font-mono text-slate-500 tracking-wider">Alignment Index</span>
@@ -760,7 +840,7 @@ export default function IosDeviceShell({
                       <span className="text-[9px] font-mono uppercase tracking-wider text-indigo-400 font-bold">Active Directive Card</span>
                     </div>
                     <p className="text-xs font-semibold leading-normal font-sans pr-4">
-                      "{dbState.todayPlan?.focus || "Sustain GMAT, conduct physical active-rehab, and log alchemist proteins."}"
+                      "{dbState.todayPlan?.focus || (hasMbaApp ? "Sustain GMAT, conduct physical active-rehab, and log alchemist proteins." : "Execute priority focus sprints, sustain physical conditioning, and preserve clarity.")}"
                     </p>
                     <div className="flex justify-between items-center mt-3 border-t border-white/5 pt-2.5">
                       <span className="text-[9px] font-mono text-slate-500">🔥 14 Days Streak Active</span>
@@ -770,31 +850,74 @@ export default function IosDeviceShell({
                     </div>
                   </div>
 
+                  {/* DAILY SOVEREIGN ROUTINE BANNER (IOS WIDGET) */}
+                  <div
+                    onClick={() => { sound.playWoodblock(); setIosActiveApp("daily_sovereign_routine"); }}
+                    className="p-4 rounded-3xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-emerald-500/5 border border-amber-500/20 cursor-pointer shadow-md hover:border-amber-400/40 transition-all space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1 rounded-lg bg-amber-500/20 text-amber-400 text-xs">⚡</span>
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">Daily Sovereign Routine</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                        {dbState.scheduledTasks?.filter(t => t.completed).length || 0}/{dbState.scheduledTasks?.length || 0} Tasks
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-white">
+                      Full-day time blocks: Deep Work, Physical Vessel & Focused Execution.
+                    </p>
+                    <div className="w-full h-1.5 rounded-full bg-stone-800 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 rounded-full transition-all"
+                        style={{
+                          width: `${dbState.scheduledTasks?.length ? Math.round(((dbState.scheduledTasks.filter(t => t.completed).length / dbState.scheduledTasks.length) * 100)) : 0}%`
+                        }}
+                      />
+                    </div>
+                  </div>
+
                   {/* DOUBLE SQUARE STATS CONTAINER */}
                   <div className="grid grid-cols-2 gap-4">
-                    {/* Recovery Widget */}
+                    {/* Mission Execution Widget (Replaces Recovery) */}
                     <div className="p-4 rounded-3xl bg-stone-900/40 border border-white/5 flex flex-col justify-between h-28 relative">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">CNS RECOVERY</span>
-                        <span className="text-xs">⚡</span>
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">MISSION ALIGNMENT</span>
+                        <span className="text-xs">🎯</span>
                       </div>
                       <div>
-                        <h4 className="text-3xl font-display font-black tracking-tight leading-none text-emerald-400">{dbState.metrics.recovery}%</h4>
-                        <p className="text-[9px] text-slate-400 font-sans mt-1">CNS assessment: Peak performance.</p>
+                        <h4 className="text-3xl font-display font-black tracking-tight leading-none text-emerald-400">
+                          {((dbState.scheduledTasks?.filter(t => t.completed).length || 0) + (dbState.aiDailyGoals?.filter(g => g.completed).length || 0))}
+                          <span className="text-lg font-mono text-slate-500 font-normal"> / {Math.max(1, (dbState.scheduledTasks?.length || 0) + (dbState.aiDailyGoals?.length || 0))}</span>
+                        </h4>
+                        <p className="text-[9px] text-slate-400 font-sans mt-1">Real-time daily objectives done.</p>
                       </div>
                     </div>
 
-                    {/* Study Widget */}
-                    <div className="p-4 rounded-3xl bg-stone-900/40 border border-white/5 flex flex-col justify-between h-28 relative">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">GMAT PREP</span>
-                        <span className="text-xs">📚</span>
+                    {/* Dynamic Secondary Widget (GMAT Prep if MBA app selected, else Titan Vessel / Stillness) */}
+                    {hasMbaApp ? (
+                      <div className="p-4 rounded-3xl bg-stone-900/40 border border-white/5 flex flex-col justify-between h-28 relative">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">GMAT PREP</span>
+                          <span className="text-xs">📚</span>
+                        </div>
+                        <div>
+                          <h4 className="text-3xl font-display font-black tracking-tight leading-none text-sky-400">{dbState.metrics.mbaHours} hrs</h4>
+                          <p className="text-[9px] text-slate-400 font-sans mt-1">Study index: Flawless status.</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-3xl font-display font-black tracking-tight leading-none text-sky-400">{dbState.metrics.mbaHours} hrs</h4>
-                        <p className="text-[9px] text-slate-400 font-sans mt-1">Study index: Flawless status.</p>
+                    ) : (
+                      <div className="p-4 rounded-3xl bg-stone-900/40 border border-white/5 flex flex-col justify-between h-28 relative">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">ZEN STILLNESS</span>
+                          <span className="text-xs">🧘</span>
+                        </div>
+                        <div>
+                          <h4 className="text-3xl font-display font-black tracking-tight leading-none text-amber-400">{dbState.metrics.meditation || 0}m</h4>
+                          <p className="text-[9px] text-slate-400 font-sans mt-1">Mindful awareness logged.</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* MACRO COMPACT CHIP WIDGET */}
@@ -868,7 +991,7 @@ export default function IosDeviceShell({
                       { key: "fitness", name: "Fitness", icon: "💪" },
                       { key: "nutrition", name: "Nutrition", icon: "🥗" },
                       { key: "mind", name: "Zen Mind", icon: "🧘" },
-                      { key: "mba", name: "GMAT", icon: "🎓" },
+                      ...(hasMbaApp ? [{ key: "mba", name: "GMAT", icon: "🎓" }] : []),
                       { key: "finance", name: "Finance", icon: "📈" },
                       { key: "reading", name: "Reading", icon: "📚" }
                     ];

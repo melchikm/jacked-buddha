@@ -25,7 +25,7 @@ export default function ZenOracle({ metrics, theme, onToggleTheme, soundEnabled,
   const [prompt, setPrompt] = useState("");
   const [showVision, setShowVision] = useState(false);
   const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "ai"; text: string; image?: string }>>([
-    { sender: "ai", text: "Greetings, Melchi. I am your Zen AI Co-Pilot. Adjust your metrics, track habits, or query me on any aspect of your career, training, nutrition, or studies. I am ready." }
+    { sender: "ai", text: "Greetings. I am your Zen AI Co-Pilot. Adjust your metrics, track habits, or query me on any aspect of your career, training, nutrition, or studies. I am ready." }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -484,7 +484,7 @@ export default function ZenOracle({ metrics, theme, onToggleTheme, soundEnabled,
                         className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
                       >
                         <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest px-1 mb-0.5">
-                          {msg.sender === "user" ? "Melchi (You)" : "Zen Oracle AI"}
+                          {msg.sender === "user" ? "You" : "Zen Oracle AI"}
                         </span>
                         
                         {msg.sender === "user" && msg.image && (

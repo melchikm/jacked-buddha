@@ -14,7 +14,7 @@ export default function FitnessPhysiqueView({ metrics, onUpdateMetrics, theme }:
   const [query, setQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
-    { sender: "ai", text: "Greetings, Melchi. I am the Physique Sculptor. Let us review your Spider-Man aesthetic matrix and enforce your active shoulder rehabilitation protocols. No training session is complete without clinical structural preservation." }
+    { sender: "ai", text: "Greetings. I am the Physique Sculptor. Let us review your Spider-Man aesthetic matrix and enforce your active shoulder rehabilitation protocols. No training session is complete without clinical structural preservation." }
   ]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState("");
@@ -74,7 +74,7 @@ export default function FitnessPhysiqueView({ metrics, onUpdateMetrics, theme }:
         const aiResponse = data.responses[0].message;
         setChatHistory((prev) => [...prev, { sender: "ai", text: aiResponse }]);
       } else {
-        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies, Melchi. My kinetic databases are recalibrating. Focus on slow eccentric movements for your active shoulder rehabilitation today." }]);
+        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies. My kinetic databases are recalibrating. Focus on slow eccentric movements for your active shoulder rehabilitation today." }]);
       }
     } catch (err) {
       setChatHistory((prev) => [...prev, { sender: "ai", text: "Connection error. Local kinetic core advises performing 3 high-rep sets of face pulls with pristine form." }]);
@@ -239,7 +239,7 @@ export default function FitnessPhysiqueView({ metrics, onUpdateMetrics, theme }:
               {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                   <span className="text-[9px] font-mono text-slate-500 uppercase mb-0.5">
-                    {msg.sender === "user" ? "Melchi" : "Physique Sculptor"}
+                    {msg.sender === "user" ? "You" : "Physique Sculptor"}
                   </span>
                   <div className={`p-3 rounded-2xl text-xs max-w-[90%] leading-relaxed ${
                     msg.sender === "user"

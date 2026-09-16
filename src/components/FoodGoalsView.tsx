@@ -15,7 +15,7 @@ export default function FoodGoalsView({ metrics, onUpdateMetrics, theme }: FoodG
   const [query, setQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
-    { sender: "ai", text: "Greetings, Melchi. I am the Bio-Alchemist Nutrition AI. I optimize metabolic fuel to build your Spider-Man physique. Ask me anything about high-protein sources, food swaps, or diet planning." }
+    { sender: "ai", text: "Greetings. I am the Bio-Alchemist Nutrition AI. I optimize metabolic fuel to build your physique. Ask me anything about high-protein sources, food swaps, or diet planning." }
   ]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState("");
@@ -89,7 +89,7 @@ export default function FoodGoalsView({ metrics, onUpdateMetrics, theme }: FoodG
         const aiResponse = data.responses[0].message;
         setChatHistory((prev) => [...prev, { sender: "ai", text: aiResponse }]);
       } else {
-        setChatHistory((prev) => [...prev, { sender: "ai", text: "Forgive me, Melchi. My connection to the metabolic archive is momentarily cloudy. Ensure you satisfy your 180g protein target today." }]);
+        setChatHistory((prev) => [...prev, { sender: "ai", text: "Forgive me. My connection to the metabolic archive is momentarily cloudy. Ensure you satisfy your daily protein target today." }]);
       }
     } catch (err) {
       setChatHistory((prev) => [...prev, { sender: "ai", text: "Connection error. Local alchemical backup indicates you should focus on lean protein and water." }]);
@@ -352,7 +352,7 @@ export default function FoodGoalsView({ metrics, onUpdateMetrics, theme }: FoodG
               {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                   <span className="text-[9px] font-mono text-slate-500 uppercase mb-0.5">
-                    {msg.sender === "user" ? "Melchi" : "Bio-Alchemist AI"}
+                    {msg.sender === "user" ? "You" : "Bio-Alchemist AI"}
                   </span>
                   <div className={`p-3 rounded-2xl text-xs max-w-[90%] leading-relaxed ${
                     msg.sender === "user"

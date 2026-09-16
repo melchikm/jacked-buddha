@@ -16,7 +16,7 @@ export default function ZenFinanceView({ metrics, onUpdateMetrics, theme }: ZenF
   const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
     {
       sender: "ai",
-      text: "Greetings, Melchi. I am the Wealth Oracle. I view capital not as a tool for material craving, but as structural energy that grants you option-value, complete mental stillness, and the ultimate sovereign freedom to think."
+      text: "Greetings. I am the Wealth Oracle. I view capital not as a tool for material craving, but as structural energy that grants you option-value, complete mental stillness, and the ultimate sovereign freedom to think."
     }
   ]);
   const [isSaving, setIsSaving] = useState(false);
@@ -77,7 +77,7 @@ export default function ZenFinanceView({ metrics, onUpdateMetrics, theme }: ZenF
         const aiResponse = data.responses[0].message;
         setChatHistory((prev) => [...prev, { sender: "ai", text: aiResponse }]);
       } else {
-        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies, Melchi. The wealth calculations are refreshing. Continue focusing on auto-investing and maintaining high capital velocity." }]);
+        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies. The wealth calculations are refreshing. Continue focusing on auto-investing and maintaining high capital velocity." }]);
       }
     } catch (err) {
       setChatHistory((prev) => [...prev, { sender: "ai", text: "Connection error. Local finance core suggests checking your automatic mutual fund sip allocations." }]);
@@ -239,7 +239,7 @@ export default function ZenFinanceView({ metrics, onUpdateMetrics, theme }: ZenF
               {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                   <span className="text-[9px] font-mono text-slate-500 uppercase mb-0.5">
-                    {msg.sender === "user" ? "Melchi" : "Wealth Oracle"}
+                    {msg.sender === "user" ? "You" : "Wealth Oracle"}
                   </span>
                   <div className={`p-3 rounded-2xl text-xs max-w-[90%] leading-relaxed ${
                     msg.sender === "user"

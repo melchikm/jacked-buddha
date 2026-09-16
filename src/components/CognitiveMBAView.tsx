@@ -14,7 +14,7 @@ export default function CognitiveMBAView({ metrics, onUpdateMetrics, theme }: Co
   const [query, setQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
-    { sender: "ai", text: "Greetings, Melchi. I am the GMAT & CAT Strategic Commander. I structure error logging and study continuity. Let us optimize your sentence correction workflows and quant modules to cross the 99th percentile threshold." }
+    { sender: "ai", text: "Greetings. I am the GMAT & CAT Strategic Commander. I structure error logging and study continuity. Let us optimize your sentence correction workflows and quant modules to cross the 99th percentile threshold." }
   ]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState("");
@@ -79,7 +79,7 @@ export default function CognitiveMBAView({ metrics, onUpdateMetrics, theme }: Co
         const aiResponse = data.responses[0].message;
         setChatHistory((prev) => [...prev, { sender: "ai", text: aiResponse }]);
       } else {
-        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies, Melchi. My GMAT algorithm is refreshing. Ensure you log every GMAT verbal error in your central register today." }]);
+        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies. My GMAT algorithm is refreshing. Ensure you log every GMAT verbal error in your central register today." }]);
       }
     } catch (err) {
       setChatHistory((prev) => [...prev, { sender: "ai", text: "Connection error. Local cognitive backup suggests dedicating 45 minutes to high-difficulty Reading Comprehension." }]);
@@ -201,7 +201,7 @@ export default function CognitiveMBAView({ metrics, onUpdateMetrics, theme }: Co
                     value={localMetrics.projects}
                     onChange={(e) => handleInputChange("projects", e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-indigo-500"
-                    placeholder="Jacked Buddha OS, Startup MVP..."
+                    placeholder="Vita OS, Startup MVP..."
                   />
                 </div>
               </div>
@@ -235,7 +235,7 @@ export default function CognitiveMBAView({ metrics, onUpdateMetrics, theme }: Co
               {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                   <span className="text-[9px] font-mono text-slate-500 uppercase mb-0.5">
-                    {msg.sender === "user" ? "Melchi" : "GMAT Commander"}
+                    {msg.sender === "user" ? "You" : "GMAT Commander"}
                   </span>
                   <div className={`p-3 rounded-2xl text-xs max-w-[90%] leading-relaxed ${
                     msg.sender === "user"

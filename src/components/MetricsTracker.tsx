@@ -60,7 +60,7 @@ export default function MetricsTracker({ metrics, onUpdateMetrics }: MetricsTrac
             </div>
             <h2 className="text-2xl font-display font-bold text-white tracking-tight">Second Brain Trackers</h2>
             <p className="text-sm text-slate-400 mt-0.5">
-              Sync variables to optimize AI model predictions. All dimensions of Melchi's existence in one place.
+              Sync variables to optimize AI model predictions. All dimensions of your life architecture in one place.
             </p>
           </div>
 
@@ -372,7 +372,7 @@ export default function MetricsTracker({ metrics, onUpdateMetrics }: MetricsTrac
                   value={localMetrics.projects}
                   onChange={(e) => handleChange("projects", e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-xs focus:outline-none focus:border-sky-500 transition-colors font-sans"
-                  placeholder="Jacked Buddha OS Engine"
+                  placeholder="Vita Universal OS"
                 />
               </div>
             </div>

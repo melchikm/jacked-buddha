@@ -16,7 +16,7 @@ export default function NatureImmersionView({ metrics, onUpdateMetrics, theme }:
   const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
     {
       sender: "ai",
-      text: "Greetings, Melchi. I am the Eco-Dharma voice of your Second Brain. The Buddha was born under a tree, attained supreme awakening under a tree, and entered absolute peace under a tree. Nature is the ultimate Zendo. Let us align your physical cells with sunlight and wild mountain frequencies."
+      text: "Greetings. I am the Eco-Dharma voice of your Second Brain. The Buddha was born under a tree, attained supreme awakening under a tree, and entered absolute peace under a tree. Nature is the ultimate Zendo. Let us align your physical cells with sunlight and wild mountain frequencies."
     }
   ]);
   const [isSaving, setIsSaving] = useState(false);
@@ -77,7 +77,7 @@ export default function NatureImmersionView({ metrics, onUpdateMetrics, theme }:
         const aiResponse = data.responses[0].message;
         setChatHistory((prev) => [...prev, { sender: "ai", text: aiResponse }]);
       } else {
-        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies, Melchi. My ecological channels are silent. Go outside, look at a tree canopy, take a slow deep breath, and reset your nervous system." }]);
+        setChatHistory((prev) => [...prev, { sender: "ai", text: "Apologies. My ecological channels are silent. Go outside, look at a tree canopy, take a slow deep breath, and reset your nervous system." }]);
       }
     } catch (err) {
       setChatHistory((prev) => [...prev, { sender: "ai", text: "Connection error. Local forest core recommends spending 15 minutes walking barefoot on grass to discharge static cognitive stress." }]);
@@ -216,7 +216,7 @@ export default function NatureImmersionView({ metrics, onUpdateMetrics, theme }:
               {chatHistory.map((msg, idx) => (
                 <div key={idx} className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                   <span className="text-[9px] font-mono text-slate-500 uppercase mb-0.5">
-                    {msg.sender === "user" ? "Melchi" : "Eco-Dharma"}
+                    {msg.sender === "user" ? "You" : "Eco-Dharma"}
                   </span>
                   <div className={`p-3 rounded-2xl text-xs max-w-[90%] leading-relaxed ${
                     msg.sender === "user"

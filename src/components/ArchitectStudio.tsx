@@ -11,7 +11,7 @@ export default function ArchitectStudio() {
     setTimeout(() => setCopiedText(""), 2000);
   };
 
-  const FLUTTER_CODE = `// main.dart - Jacked Buddha Core OS
+  const FLUTTER_CODE = `// main.dart - Vita Core OS
 // Apple Human Interface & Android Material 3 Synergy
 
 import 'package:flutter/material.dart';
@@ -22,16 +22,16 @@ import 'package:motion/motion.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const ProviderScope(child: JackedBuddhaApp()));
+  runApp(const ProviderScope(child: VitaApp()));
 }
 
-class JackedBuddhaApp extends StatelessWidget {
-  const JackedBuddhaApp({super.key});
+class VitaApp extends StatelessWidget {
+  const VitaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Jacked Buddha',
+      title: 'Vita',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF09090E),
@@ -82,11 +82,11 @@ class CouncilMeetingNotifier extends StateNotifier<AsyncValue<List<CouncilMessag
   "firestore-blueprint.json": {
     "collections": {
       "users": {
-        "documentId": "melchi_uid",
+        "documentId": "$USER_UID",
         "fields": {
-          "name": "Melchi",
-          "username": "Melchi",
-          "email": "melchi.km@gmail.com",
+          "name": "Authenticated User",
+          "username": "user_chosen_handle",
+          "email": "user@example.com",
           "created_at": "TIMESTAMP",
           "preferences": {
             "theme": "dark_obsidian",
@@ -135,11 +135,12 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 admin.initializeApp({ credential: admin.credential.applicationDefault() });
 
 app.post("/api/council/query", async (req, res) => {
-  const { question, chosenAgents, metricsContext } = req.body;
-  const systemInstruction = \`Speak as the AI Council for Melchi: \${chosenAgents.join(", ")}\`;
+  const { question, chosenAgents, metricsContext, userName } = req.body;
+  const targetUser = userName || "Explorer";
+  const systemInstruction = "Speak as the AI Council for " + targetUser + ": " + chosenAgents.join(", ");
   
   const result = await ai.models.generateContent({
-    model: "gemini-3.5-flash",
+    model: "gemini-3.8-flash",
     contents: question,
     config: { systemInstruction, responseMimeType: "application/json" }
   });
@@ -149,7 +150,7 @@ app.post("/api/council/query", async (req, res) => {
 `;
 
   const CICD_PIPELINE = `# github_action_deploy.yml
-name: Jacked Buddha Production Release
+name: Vita Production Release
 
 on:
   push:
