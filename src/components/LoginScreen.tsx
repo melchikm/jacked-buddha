@@ -178,32 +178,60 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
       });
       const data = await res.json();
 
+      const cleanKey = targetUser.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const hasPriorSession = typeof window !== "undefined" && (
+        localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
+        localStorage.getItem(`zen-db-state-${targetUser}`) !== null
+      );
+
       if (data.success && data.user) {
+        const isExistingUser = data.user.isOnboarded || hasPriorSession || (Array.isArray(data.user.selectedAIs) && data.user.selectedAIs.length > 0);
         const loggedIn = {
           name: data.user.name || targetUser,
           username: data.user.username || targetUser,
           email: data.user.email || `${targetUser.toLowerCase()}@vita.io`,
           longTermGoals: data.user.longTermGoals,
-          isOnboarded: data.user.isOnboarded
+          selectedAIs: data.user.selectedAIs,
+          isOnboarded: !!isExistingUser,
+          welcomeAcknowledged: !!isExistingUser
         };
+
+        if (isExistingUser && typeof window !== "undefined") {
+          localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
+        }
 
         onLoginSuccess(loggedIn);
       } else {
-        // Universal fallback
+        // Universal fallback for existing/returning user
         const fallbackUser = {
           name: targetUser,
           username: targetUser,
-          email: `${targetUser.toLowerCase()}@vita.io`
+          email: `${targetUser.toLowerCase()}@vita.io`,
+          isOnboarded: hasPriorSession,
+          welcomeAcknowledged: hasPriorSession
         };
+        if (hasPriorSession && typeof window !== "undefined") {
+          localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
+        }
         onLoginSuccess(fallbackUser);
       }
     } catch (e) {
       // Offline universal fallback
+      const cleanKey = targetUser.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const hasPriorSession = typeof window !== "undefined" && (
+        localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
+        localStorage.getItem(`zen-db-state-${targetUser}`) !== null
+      );
       const fallbackUser = {
         name: targetUser,
         username: targetUser,
-        email: `${targetUser.toLowerCase()}@vita.io`
+        email: `${targetUser.toLowerCase()}@vita.io`,
+        isOnboarded: hasPriorSession,
+        welcomeAcknowledged: hasPriorSession
       };
+      if (hasPriorSession && typeof window !== "undefined") {
+        localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
+      }
       onLoginSuccess(fallbackUser);
     } finally {
       setIsLoading(false);
@@ -229,31 +257,59 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
       const data = await res.json();
       setIsFaceIDSensing(false);
 
+      const cleanKey = targetUser.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const hasPriorSession = typeof window !== "undefined" && (
+        localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
+        localStorage.getItem(`zen-db-state-${targetUser}`) !== null
+      );
+
       if (data.success && data.user) {
+        const isExistingUser = data.user.isOnboarded || hasPriorSession || (Array.isArray(data.user.selectedAIs) && data.user.selectedAIs.length > 0);
         const loggedIn = {
           name: data.user.name || targetUser,
           username: data.user.username || targetUser,
           email: data.user.email || `${targetUser.toLowerCase()}@vita.io`,
           longTermGoals: data.user.longTermGoals,
-          isOnboarded: data.user.isOnboarded
+          selectedAIs: data.user.selectedAIs,
+          isOnboarded: !!isExistingUser,
+          welcomeAcknowledged: !!isExistingUser
         };
+
+        if (isExistingUser && typeof window !== "undefined") {
+          localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
+        }
 
         onLoginSuccess(loggedIn);
       } else {
         const fallbackUser = {
           name: targetUser,
           username: targetUser,
-          email: `${targetUser.toLowerCase()}@vita.io`
+          email: `${targetUser.toLowerCase()}@vita.io`,
+          isOnboarded: hasPriorSession,
+          welcomeAcknowledged: hasPriorSession
         };
+        if (hasPriorSession && typeof window !== "undefined") {
+          localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
+        }
         onLoginSuccess(fallbackUser);
       }
     } catch {
       setIsFaceIDSensing(false);
+      const cleanKey = targetUser.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const hasPriorSession = typeof window !== "undefined" && (
+        localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
+        localStorage.getItem(`zen-db-state-${targetUser}`) !== null
+      );
       const fallbackUser = {
         name: targetUser,
         username: targetUser,
-        email: `${targetUser.toLowerCase()}@vita.io`
+        email: `${targetUser.toLowerCase()}@vita.io`,
+        isOnboarded: hasPriorSession,
+        welcomeAcknowledged: hasPriorSession
       };
+      if (hasPriorSession && typeof window !== "undefined") {
+        localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
+      }
       onLoginSuccess(fallbackUser);
     }
   };

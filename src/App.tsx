@@ -105,10 +105,6 @@ export default function App() {
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          if (parsed && (parsed.name === "Melchi" || parsed.username === "Melchi")) {
-            localStorage.removeItem("zen-user-session");
-            return null;
-          }
           return parsed;
         } catch (e) {
           console.error("Failed to parse stored user session", e);
@@ -216,6 +212,7 @@ export default function App() {
 
   // Personalized AI Council Preferences & Individual Goals Onboarding Modal (for new or resetted users)
   const [isAiPreferencesModalOpen, setIsAiPreferencesModalOpen] = useState<boolean>(false);
+  const [isPreferencesNewUser, setIsPreferencesNewUser] = useState<boolean>(false);
 
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [nowTick, setNowTick] = useState<number>(Date.now());
@@ -284,10 +281,19 @@ export default function App() {
           setUser((prev) => prev ? { ...prev, selectedAIs: serverState.selectedAIs, isOnboarded: true } : prev);
         }
 
-        // If user has no selectedAIs configured, prompt onboarding
+        // If user is brand new and has never been welcomed or configured, prompt onboarding
         if (!isSilent) {
+          const cleanKey = (username || "").toLowerCase().replace(/[^a-z0-9]/g, "");
           const userAIs = data.selectedAIs || data.userProfile?.selectedAIs;
-          if (!userAIs || userAIs.length === 0) {
+          const hasPriorWelcome = typeof window !== "undefined" && (
+            localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
+            localStorage.getItem("vita-user-welcomed-global") === "true" ||
+            data.userProfile?.welcomeAcknowledged === true ||
+            data.userProfile?.isOnboarded === true
+          );
+          const hasConfiguredTools = Array.isArray(userAIs) && userAIs.length > 0;
+          if (!hasPriorWelcome && !hasConfiguredTools) {
+            setIsPreferencesNewUser(true);
             setIsAiPreferencesModalOpen(true);
           }
         }
@@ -352,6 +358,7 @@ export default function App() {
     email: string;
     longTermGoals?: UserLongTermGoals;
     isOnboarded?: boolean;
+    welcomeAcknowledged?: boolean;
     selectedAIs?: SelectedAIPreference[];
   }) => {
     const userObj: UserProfile = {
@@ -360,6 +367,7 @@ export default function App() {
       email: profile.email,
       longTermGoals: profile.longTermGoals,
       isOnboarded: profile.isOnboarded,
+      welcomeAcknowledged: profile.welcomeAcknowledged,
       selectedAIs: profile.selectedAIs || []
     };
     setUser(userObj);
@@ -381,9 +389,18 @@ export default function App() {
       }));
     }
 
-    // New or resetted user: prompt AI Preferences Onboarding Modal!
-    const needsAiOnboarding = !profile.isOnboarded || !profile.selectedAIs || profile.selectedAIs.length === 0;
-    if (needsAiOnboarding) {
+    // Welcome and initiation is strictly for brand-new users who haven't completed onboarding or welcome
+    const cleanKey = (userObj.username || userObj.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const hasPriorWelcome = typeof window !== "undefined" && (
+      localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
+      localStorage.getItem("vita-user-welcomed-global") === "true" ||
+      profile.welcomeAcknowledged === true ||
+      profile.isOnboarded === true
+    );
+    const hasConfiguredTools = Array.isArray(profile.selectedAIs) && profile.selectedAIs.length > 0;
+
+    if (!hasPriorWelcome && !hasConfiguredTools) {
+      setIsPreferencesNewUser(true);
       setTimeout(() => {
         setIsAiPreferencesModalOpen(true);
       }, 350);
@@ -401,13 +418,20 @@ export default function App() {
   const handleSaveAiPreferences = async (newSelectedAIs: SelectedAIPreference[]) => {
     const uname = user?.username || user?.name || "Explorer";
     const userEmail = user?.email || `${uname.toLowerCase().replace(/[^a-z0-9]/g, "")}@vita.io`;
+    const cleanKey = uname.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
+      localStorage.setItem("vita-user-welcomed-global", "true");
+    }
 
     // Optimistically update local user state
     const updatedUser: UserProfile = {
       ...(user || { name: uname, email: userEmail }),
       username: uname,
       selectedAIs: newSelectedAIs,
-      isOnboarded: true
+      isOnboarded: true,
+      welcomeAcknowledged: true
     };
     setUser(updatedUser);
     if (typeof window !== "undefined") {
@@ -840,6 +864,7 @@ export default function App() {
 
     setIsResetModalOpen(false);
     setActiveView("mission_control");
+    setIsPreferencesNewUser(true);
     setIsAiPreferencesModalOpen(true);
     sound.playSingingBowl();
   };
@@ -2364,9 +2389,15 @@ export default function App() {
       {/* Personalized AI App Preferences & Individual Goals Onboarding Modal */}
       <AiPreferencesOnboardingModal
         isOpen={isAiPreferencesModalOpen}
-        onClose={() => setIsAiPreferencesModalOpen(false)}
+        onClose={() => {
+          setIsAiPreferencesModalOpen(false);
+          setIsPreferencesNewUser(false);
+        }}
         userName={user?.name || user?.username || "Explorer"}
+        currentUser={user}
+        isNewOrResetted={isPreferencesNewUser}
         initialPreferences={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
+        currentSelectedAIs={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
         onSavePreferences={handleSaveAiPreferences}
         theme={theme}
       />

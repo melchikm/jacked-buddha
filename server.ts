@@ -445,14 +445,21 @@ app.post("/api/auth/login", (req, res) => {
   const { username, password, type } = req.body;
 
   if (type === "biometric") {
+    const effectiveUser = (username || "").trim() || "Explorer";
+    const existing = db.users?.find((u: any) => u.username && u.username.toLowerCase() === effectiveUser.toLowerCase());
+    const userState = existing ? db.userStates?.[existing.username] : null;
+    const selectedAIs = existing?.selectedAIs || userState?.selectedAIs || userState?.userProfile?.selectedAIs || [];
+    const isOnboarded = !!existing?.isOnboarded || (Array.isArray(selectedAIs) && selectedAIs.length > 0);
+
     return res.json({
       success: true,
       user: {
-        name: username || "Explorer",
-      username: username || "Explorer",
-      email: `${(username || "explorer").toLowerCase()}@vita.io`,
-      isBiometric: true,
-      isOnboarded: false
+        name: existing?.name || effectiveUser,
+        username: existing?.username || effectiveUser,
+        email: existing?.email || `${effectiveUser.toLowerCase()}@vita.io`,
+        isBiometric: true,
+        selectedAIs,
+        isOnboarded
       }
     });
   }

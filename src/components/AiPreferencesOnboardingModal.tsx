@@ -3,7 +3,7 @@ import {
   Sparkles, CheckCircle2, ChevronRight, ArrowRight, RotateCcw,
   Zap, Compass, Shield, Target, Award, Calendar, Layers,
   Sliders, ArrowLeft, Check, Flame, Clock, HeartHandshake,
-  CheckSquare, Activity, User, HelpCircle, BookOpen, AlertCircle
+  CheckSquare, Activity, User, HelpCircle, BookOpen, AlertCircle, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { SelectedAIPreference, UserProfile } from "../types";
@@ -13,7 +13,7 @@ import { DEFAULT_AI_COUNCIL_OPTIONS, generateGoalBreakdown, GoalBreakdownResult 
 interface AiPreferencesOnboardingModalProps {
   isOpen: boolean;
   onClose?: () => void;
-  currentUser?: { name: string; username?: string; email?: string; age?: number } | null;
+  currentUser?: UserProfile | null;
   userName?: string;
   initialPreferences?: SelectedAIPreference[];
   currentSelectedAIs?: SelectedAIPreference[];
@@ -34,21 +34,61 @@ export default function AiPreferencesOnboardingModal({
   onSavePreferences
 }: AiPreferencesOnboardingModalProps) {
   const username = userName || currentUser?.username || currentUser?.name || "Explorer";
+  const userKey = username.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const effectiveSelectedAIs = currentSelectedAIs || initialPreferences;
+
+  // Determine if this user is already an existing/logged-in user or has already been welcomed
+  const hasBeenWelcomed = typeof window !== "undefined" && (
+    localStorage.getItem(`vita-user-welcomed-${userKey}`) === "true" ||
+    localStorage.getItem("vita-user-welcomed-global") === "true" ||
+    currentUser?.welcomeAcknowledged === true ||
+    currentUser?.isOnboarded === true ||
+    (Array.isArray(effectiveSelectedAIs) && effectiveSelectedAIs.length > 0)
+  );
+
+  // Welcome (Step 0) is strictly for new users who haven't completed welcome initiation
+  const isTrulyNewUser = Boolean(isNewOrResetted && !hasBeenWelcomed);
 
   // Flow steps:
-  // 0 = Welcome ("Vita welcomes you [username]" + Vita Man pops up)
+  // 0 = Welcome ("Vita welcomes you [username]" + Vita Man pops up) - ONLY for truly brand-new users
   // 1 = Vita Man asks Age
   // 2 = Select Development Tools (Catchy Names)
   // 3 = Set Goals & Time Span + "Analyze Goal"
   // 4 = System Integration & Summary
-  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(0);
+  const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(() => {
+    return isTrulyNewUser ? 0 : 2;
+  });
+
+  const markWelcomeCompleted = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`vita-user-welcomed-${userKey}`, "true");
+      localStorage.setItem("vita-user-welcomed-global", "true");
+    }
+  };
+
+  // Keep step aligned if modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const welcomed = typeof window !== "undefined" && (
+        localStorage.getItem(`vita-user-welcomed-${userKey}`) === "true" ||
+        localStorage.getItem("vita-user-welcomed-global") === "true" ||
+        currentUser?.welcomeAcknowledged === true ||
+        currentUser?.isOnboarded === true ||
+        (Array.isArray(effectiveSelectedAIs) && effectiveSelectedAIs.length > 0)
+      );
+      if (!isNewOrResetted || welcomed) {
+        setStep(2);
+      } else {
+        setStep(0);
+      }
+    }
+  }, [isOpen, isNewOrResetted, userKey, currentUser, effectiveSelectedAIs]);
 
   // Age state
   const [age, setAge] = useState<number>(() => {
     return currentUser?.age || 26;
   });
-
-  const effectiveSelectedAIs = currentSelectedAIs || initialPreferences;
 
   // Selected Tool IDs (Default: Titan & Zenith; specialized apps like Sage GMAT/MBA are opt-in)
   const [selectedIds, setSelectedIds] = useState<string[]>(() => {
@@ -225,6 +265,7 @@ export default function AiPreferencesOnboardingModal({
 
     try {
       await onSavePreferences(assembledPreferences, age);
+      markWelcomeCompleted();
       setSaveSuccess(true);
       setTimeout(() => {
         if (onClose) onClose();
@@ -281,20 +322,33 @@ export default function AiPreferencesOnboardingModal({
             </div>
           </div>
 
-          {/* Stepper Dots */}
-          <div className="flex items-center gap-2">
-            {[0, 1, 2, 3, 4].map((s) => (
-              <div
-                key={s}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  step === s
-                    ? "w-7 bg-amber-400"
-                    : step > s
-                    ? "w-2 bg-emerald-400"
-                    : "w-2 bg-white/20"
-                }`}
-              />
-            ))}
+          <div className="flex items-center gap-3">
+            {/* Stepper Dots */}
+            <div className="flex items-center gap-2">
+              {(isTrulyNewUser ? [0, 1, 2, 3, 4] : [2, 3, 4]).map((s) => (
+                <div
+                  key={s}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    step === s
+                      ? "w-7 bg-amber-400"
+                      : step > s
+                      ? "w-2 bg-emerald-400"
+                      : "w-2 bg-white/20"
+                  }`}
+                />
+              ))}
+            </div>
+
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -377,6 +431,7 @@ export default function AiPreferencesOnboardingModal({
                   type="button"
                   onClick={() => {
                     sound.playTingsha();
+                    markWelcomeCompleted();
                     setStep(1);
                   }}
                   className="px-8 py-3.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-black font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
@@ -470,19 +525,24 @@ export default function AiPreferencesOnboardingModal({
                 </div>
 
                 <div className="flex justify-between items-center pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setStep(0)}
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>Back</span>
-                  </button>
+                  {isTrulyNewUser ? (
+                    <button
+                      type="button"
+                      onClick={() => setStep(0)}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Back</span>
+                    </button>
+                  ) : (
+                    <div />
+                  )}
 
                   <button
                     type="button"
                     onClick={() => {
                       sound.playTingsha();
+                      markWelcomeCompleted();
                       setStep(2);
                     }}
                     className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-black font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-amber-500/20 hover:from-amber-300 hover:to-orange-400 transition flex items-center gap-2"
