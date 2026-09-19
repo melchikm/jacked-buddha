@@ -28,7 +28,6 @@ import TravelChroniclesView from "./TravelChroniclesView";
 import FaithDevotionView from "./FaithDevotionView";
 import NatureImmersionView from "./NatureImmersionView";
 import AICouncilRoom from "./AICouncilRoom";
-import LifeCoachDashboard from "./LifeCoachDashboard";
 import ProactiveReview from "./ProactiveReview";
 import TimelineLogs from "./TimelineLogs";
 import ArchitectStudio from "./ArchitectStudio";
@@ -245,7 +244,6 @@ export default function IosDeviceShell({
       color: "from-amber-500/10 to-indigo-500/10",
       apps: [
         { id: "daily_sovereign_routine", name: "Sovereign Routine", icon: "⚡", color: "bg-amber-500" },
-        { id: "life_coach", name: "AI Life Coach", icon: "🎯", color: "bg-amber-600" },
         { id: "buddha_sanctuary", name: "AI Council", icon: "🏛️", color: "bg-indigo-600" },
         { id: "mountain", name: "Mountain Life", icon: "🏔️", color: "bg-amber-700" }
       ]
@@ -738,16 +736,6 @@ export default function IosDeviceShell({
 
                     {iosActiveApp === "daily_summary" && (
                       <DailySummaryView dbState={dbState} onUpdateState={onUpdateState} onUpdateMetrics={onUpdateMetrics} theme={theme} />
-                    )}
-
-                    {iosActiveApp === "life_coach" && (
-                      <LifeCoachDashboard
-                        user={user}
-                        onLogout={onLogout}
-                        theme={theme === "bright" ? "bright" : "dark"}
-                        onNavigateToView={(view) => setIosActiveApp(view as any)}
-                        onResetAll={onResetAll}
-                      />
                     )}
 
                     {iosActiveApp === "buddha_sanctuary" && (

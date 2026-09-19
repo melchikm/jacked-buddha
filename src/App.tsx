@@ -23,7 +23,6 @@ import AtmosphericBackdrop from "./components/AtmosphericBackdrop";
 import { sound } from "./utils/soundEngine";
 import { useLiveTime } from "./utils/timeEngine";
 import LiveTimeTracker from "./components/LiveTimeTracker";
-import LifeCoachDashboard from "./components/LifeCoachDashboard";
 import { Sun, Moon, Volume2, VolumeX, Clock } from "lucide-react";
 import { logOutFromFirebase, auth } from "./lib/firebase";
 import { offlineQueue } from "./lib/offlineQueue";
@@ -34,7 +33,6 @@ import FoodGoalsView from "./components/FoodGoalsView";
 import HabitTracker from "./components/HabitTracker";
 import FitnessPhysiqueView from "./components/FitnessPhysiqueView";
 import CognitiveMBAView from "./components/CognitiveMBAView";
-import CustomRequirementsView from "./components/CustomRequirementsView";
 import GoalAnalysisWidget from "./components/GoalAnalysisWidget";
 import LifeSpheresView from "./components/LifeSpheresView";
 import SovereignJournalView from "./components/SovereignJournalView";
@@ -134,10 +132,8 @@ export default function App() {
     | "daily_summary"
     | "weekly_summary"
     | "buddha_sanctuary"
-    | "life_coach"
     | "food_goals"
     | "fitness_physique"
-    | "custom_requirements"
     | "cognitive_mba"
     | "music_production"
     | "cinema_making"
@@ -2171,18 +2167,6 @@ export default function App() {
               />
             )}
 
-            {activeView === "life_coach" && (
-              <LifeCoachDashboard
-                user={user}
-                onLogout={handleLogout}
-                theme={theme === "bright" ? "bright" : "dark"}
-                onNavigateToView={setActiveView}
-                onResetAll={handleResetEverythingToZero}
-                onOpenAiPreferences={() => setIsAiPreferencesModalOpen(true)}
-                selectedAIs={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
-              />
-            )}
-
             {activeView === "buddha_sanctuary" && (
               <AICouncilRoom
                 metrics={dbState.metrics}
@@ -2209,14 +2193,11 @@ export default function App() {
               />
             )}
 
-            {(activeView === "custom_requirements" || activeView === "cognitive_mba") && (
-              <CustomRequirementsView
+            {activeView === "cognitive_mba" && (
+              <CognitiveMBAView
                 metrics={dbState.metrics}
                 onUpdateMetrics={updateMetricsState}
                 theme={theme}
-                dbState={dbState}
-                onUpdateState={handleUpdateState}
-                onNavigateToView={(v) => { sound.playSingingBowl(); setActiveView(v as any); }}
               />
             )}
 

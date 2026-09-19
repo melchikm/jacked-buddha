@@ -126,7 +126,7 @@ export default function GoalAnalysisWidget({
       ],
       dailyInterventions: [
         "Hit 175g clean protein macro before 8:00 PM.",
-        "Execute 1 uninterrupted 60-minute deep craft sprint in your Desired Requirements track.",
+        "Execute 1 uninterrupted 60-minute deep focus sprint on your primary objectives.",
         "Close each day with a 3-minute Sovereign Journal reflection."
       ]
     };
@@ -343,15 +343,15 @@ export default function GoalAnalysisWidget({
           </button>
 
           <button
-            onClick={() => { sound.playWoodblock(); onNavigateToView("custom_requirements"); }}
+            onClick={() => { sound.playWoodblock(); onNavigateToView("architect"); }}
             className={`p-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
               isBright ? "bg-stone-50 hover:bg-amber-500/10 border-stone-200" : "bg-white/2 hover:bg-white/5 border-white/5"
             }`}
           >
-            <div className="text-lg mb-1">🎯</div>
+            <div className="text-lg mb-1">⚙️</div>
             <div>
-              <span className="text-xs font-bold block">Requirements</span>
-              <span className="text-[10px] font-mono text-stone-400">Custom Focus Studio</span>
+              <span className="text-xs font-bold block">Architect</span>
+              <span className="text-[10px] font-mono text-stone-400">System Blueprint</span>
             </div>
           </button>
 
