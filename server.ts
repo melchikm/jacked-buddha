@@ -439,14 +439,155 @@ app.get("/manifest.json", (req, res) => {
   res.sendFile(path.join(process.cwd(), "manifest.json"));
 });
 
-// 2. Authentication API (Universal Access for Vita OS)
+// 2. Authentication API (Google Mail & Mandatory Password Security for Vita OS)
+
+app.get("/api/auth/check-google-user", (req, res) => {
+  const db = loadDB();
+  const email = (req.query.email as string || "").toLowerCase().trim();
+  const googleUid = (req.query.googleUid as string || "").trim();
+
+  if (!email && !googleUid) {
+    return res.status(400).json({ success: false, message: "Email or googleUid required" });
+  }
+
+  const existing = (db.users || []).find((u: any) => 
+    (googleUid && u.googleUid === googleUid) ||
+    (email && u.email && u.email.toLowerCase() === email)
+  );
+
+  if (existing && existing.password) {
+    const userState = db.userStates?.[existing.username];
+    const userGoals = existing.longTermGoals || userState?.longTermGoals;
+    const selectedAIs = existing.selectedAIs || userState?.selectedAIs || userState?.userProfile?.selectedAIs || [];
+    const isOnboarded = !!existing.isOnboarded || (Array.isArray(selectedAIs) && selectedAIs.length > 0);
+
+    return res.json({
+      success: true,
+      exists: true,
+      hasPassword: true,
+      user: {
+        name: existing.name || existing.username,
+        username: existing.username,
+        email: existing.email,
+        photoURL: existing.photoURL,
+        longTermGoals: userGoals,
+        selectedAIs,
+        isOnboarded,
+        hasPassword: true
+      }
+    });
+  }
+
+  return res.json({
+    success: true,
+    exists: !!existing,
+    hasPassword: !!existing?.password,
+    existingUsername: existing?.username || "",
+    existingName: existing?.name || ""
+  });
+});
+
+app.post("/api/auth/google-setup", (req, res) => {
+  const db = loadDB();
+  const { googleUid, email, name, username, password, photoURL } = req.body;
+
+  if (!email || !email.includes("@")) {
+    return res.status(400).json({ success: false, message: "Valid Google Mail required." });
+  }
+
+  if (!password || password.trim().length < 4) {
+    return res.status(400).json({ success: false, message: "A mandatory password of at least 4 characters is required." });
+  }
+
+  const cleanHandle = (username || name || email.split("@")[0] || "Explorer").trim();
+  if (cleanHandle.length < 2) {
+    return res.status(400).json({ success: false, message: "Username must be at least 2 characters." });
+  }
+
+  if (!db.users) db.users = [];
+
+  // Check if another user already took this username (excluding same email/uid)
+  const usernameConflict = db.users.find((u: any) => 
+    u.username && 
+    u.username.toLowerCase() === cleanHandle.toLowerCase() && 
+    u.email?.toLowerCase() !== email.toLowerCase() &&
+    u.googleUid !== googleUid
+  );
+  if (usernameConflict) {
+    return res.status(400).json({ success: false, message: `Username '${cleanHandle}' is already taken. Please choose another username.` });
+  }
+
+  // Find existing by email or googleUid
+  let existing = db.users.find((u: any) => 
+    (u.googleUid && u.googleUid === googleUid) ||
+    (u.email && u.email.toLowerCase() === email.toLowerCase())
+  );
+
+  const cleanName = (name || cleanHandle).trim();
+  const trimmedPassword = password.trim();
+
+  if (existing) {
+    const oldUsername = existing.username;
+    existing.username = cleanHandle;
+    existing.name = cleanName;
+    existing.password = trimmedPassword;
+    existing.googleUid = googleUid || existing.googleUid;
+    existing.photoURL = photoURL || existing.photoURL;
+    existing.updatedAt = new Date().toISOString();
+
+    // Migrate user state key if username changed
+    if (oldUsername && oldUsername.toLowerCase() !== cleanHandle.toLowerCase() && db.userStates?.[oldUsername]) {
+      db.userStates[cleanHandle] = db.userStates[oldUsername];
+      delete db.userStates[oldUsername];
+    }
+  } else {
+    existing = {
+      googleUid: googleUid || "",
+      email: email.toLowerCase(),
+      name: cleanName,
+      username: cleanHandle,
+      password: trimmedPassword,
+      photoURL: photoURL || "",
+      selectedAIs: [],
+      isOnboarded: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    db.users.push(existing);
+  }
+
+  saveDB(db);
+
+  const userState = db.userStates?.[existing.username];
+  const userGoals = existing.longTermGoals || userState?.longTermGoals;
+  const selectedAIs = existing.selectedAIs || userState?.selectedAIs || userState?.userProfile?.selectedAIs || [];
+  const isOnboarded = !!existing.isOnboarded || (Array.isArray(selectedAIs) && selectedAIs.length > 0);
+
+  return res.json({
+    success: true,
+    user: {
+      name: existing.name,
+      username: existing.username,
+      email: existing.email,
+      photoURL: existing.photoURL,
+      longTermGoals: userGoals,
+      selectedAIs,
+      isOnboarded,
+      hasPassword: true
+    }
+  });
+});
+
 app.post("/api/auth/login", (req, res) => {
   const db = loadDB();
   const { username, password, type } = req.body;
 
   if (type === "biometric") {
     const effectiveUser = (username || "").trim() || "Explorer";
-    const existing = db.users?.find((u: any) => u.username && u.username.toLowerCase() === effectiveUser.toLowerCase());
+    const existing = db.users?.find((u: any) => 
+      (u.username && u.username.toLowerCase() === effectiveUser.toLowerCase()) ||
+      (u.email && u.email.toLowerCase() === effectiveUser.toLowerCase())
+    );
     const userState = existing ? db.userStates?.[existing.username] : null;
     const selectedAIs = existing?.selectedAIs || userState?.selectedAIs || userState?.userProfile?.selectedAIs || [];
     const isOnboarded = !!existing?.isOnboarded || (Array.isArray(selectedAIs) && selectedAIs.length > 0);
@@ -459,58 +600,149 @@ app.post("/api/auth/login", (req, res) => {
         email: existing?.email || `${effectiveUser.toLowerCase()}@vita.io`,
         isBiometric: true,
         selectedAIs,
-        isOnboarded
+        isOnboarded,
+        hasPassword: !!existing?.password
       }
     });
   }
 
-  const effectiveUser = (username || "").trim() || "Guest";
+  // Standard Username & Password sign-in (after sign out)
+  const effectiveUser = (username || "").trim();
+  if (!effectiveUser) {
+    return res.status(400).json({ success: false, message: "Please enter your username or email." });
+  }
+
+  const effectivePassword = (password || "").trim();
+  if (!effectivePassword) {
+    return res.status(400).json({ success: false, message: "Password is mandatory. Please enter your password." });
+  }
+
   if (!db.users) db.users = [];
 
-  const existingUser = db.users.find((u: any) => u.username && u.username.toLowerCase() === effectiveUser.toLowerCase());
+  const existingUser = db.users.find((u: any) => 
+    (u.username && u.username.toLowerCase() === effectiveUser.toLowerCase()) ||
+    (u.email && u.email.toLowerCase() === effectiveUser.toLowerCase())
+  );
 
-  if (existingUser) {
-    const userState = db.userStates?.[existingUser.username];
-    const userGoals = existingUser.longTermGoals || userState?.longTermGoals;
-    const selectedAIs = existingUser.selectedAIs || userState?.selectedAIs || userState?.userProfile?.selectedAIs || [];
-    const isOnboarded = (Array.isArray(selectedAIs) && selectedAIs.length > 0) || !!(userGoals && userGoals.primaryAppGoal);
-
-    return res.json({
-      success: true,
-      user: {
-        name: existingUser.name || existingUser.username,
-        username: existingUser.username,
-        email: existingUser.email,
-        age: existingUser.age,
-        longTermGoals: userGoals,
-        selectedAIs: selectedAIs,
-        isOnboarded
-      }
+  if (!existingUser) {
+    return res.status(401).json({ 
+      success: false, 
+      message: "No account found with this username or email. Please log in using Google Mail first to set up your account." 
     });
   }
 
-  // Universal auto-registration: Any new user can immediately enter Vita
-  const newUser = {
-    username: effectiveUser,
-    password: password || "vita",
-    name: effectiveUser,
-    email: `${effectiveUser.toLowerCase()}@vita.io`,
-    selectedAIs: [],
-    isOnboarded: false
-  };
-  db.users.push(newUser);
-  saveDB(db);
+  // Verify Mandatory Password
+  if (existingUser.password && existingUser.password !== effectivePassword) {
+    return res.status(401).json({ 
+      success: false, 
+      message: "Incorrect password. Please verify your credentials or log in with Google Mail." 
+    });
+  }
+
+  // If user had no password yet, set it now
+  if (!existingUser.password) {
+    existingUser.password = effectivePassword;
+    saveDB(db);
+  }
+
+  const userState = db.userStates?.[existingUser.username];
+  const userGoals = existingUser.longTermGoals || userState?.longTermGoals;
+  const selectedAIs = existingUser.selectedAIs || userState?.selectedAIs || userState?.userProfile?.selectedAIs || [];
+  const isOnboarded = (Array.isArray(selectedAIs) && selectedAIs.length > 0) || !!(userGoals && userGoals.primaryAppGoal);
 
   return res.json({
     success: true,
     user: {
-      name: newUser.name,
-      username: newUser.username,
-      email: newUser.email,
-      selectedAIs: [],
-      isOnboarded: false
-    },
-    message: "Welcome to Vita! Universal profile initiated."
+      name: existingUser.name || existingUser.username,
+      username: existingUser.username,
+      email: existingUser.email,
+      age: existingUser.age,
+      photoURL: existingUser.photoURL,
+      longTermGoals: userGoals,
+      selectedAIs: selectedAIs,
+      isOnboarded,
+      hasPassword: true
+    }
+  });
+});
+
+// Update Credentials API: Name and Password can be updated after logging in
+app.post("/api/user/update-credentials", (req, res) => {
+  const db = loadDB();
+  const { currentUsername, newName, newUsername, currentPassword, newPassword } = req.body;
+
+  if (!currentUsername) {
+    return res.status(400).json({ success: false, message: "Current username or email is required." });
+  }
+
+  if (!db.users) db.users = [];
+
+  const user = db.users.find((u: any) => 
+    (u.username && u.username.toLowerCase() === currentUsername.trim().toLowerCase()) ||
+    (u.email && u.email.toLowerCase() === currentUsername.trim().toLowerCase())
+  );
+
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User account not found." });
+  }
+
+  // If updating password
+  if (newPassword && newPassword.trim()) {
+    if (newPassword.trim().length < 4) {
+      return res.status(400).json({ success: false, message: "New password must be at least 4 characters long." });
+    }
+    // If user already has a password set, currentPassword must match
+    if (user.password && user.password !== (currentPassword || "").trim()) {
+      return res.status(400).json({ success: false, message: "Current password does not match. Please verify your current password." });
+    }
+    user.password = newPassword.trim();
+  }
+
+  // If updating display name
+  if (newName && newName.trim()) {
+    user.name = newName.trim();
+  }
+
+  // If updating sovereign username
+  if (newUsername && newUsername.trim()) {
+    const cleanNewUsername = newUsername.trim();
+    if (cleanNewUsername.toLowerCase() !== user.username.toLowerCase()) {
+      if (cleanNewUsername.length < 2) {
+        return res.status(400).json({ success: false, message: "Username must be at least 2 characters." });
+      }
+      const collision = db.users.find((u: any) => 
+        u.username && 
+        u.username.toLowerCase() === cleanNewUsername.toLowerCase() && 
+        u !== user
+      );
+      if (collision) {
+        return res.status(400).json({ success: false, message: `Username '${cleanNewUsername}' is already taken.` });
+      }
+
+      const oldUsername = user.username;
+      user.username = cleanNewUsername;
+      if (db.userStates && db.userStates[oldUsername]) {
+        db.userStates[cleanNewUsername] = db.userStates[oldUsername];
+        delete db.userStates[oldUsername];
+      }
+    }
+  }
+
+  user.updatedAt = new Date().toISOString();
+  saveDB(db);
+
+  return res.json({
+    success: true,
+    message: "Credentials successfully updated.",
+    user: {
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      photoURL: user.photoURL,
+      isOnboarded: user.isOnboarded,
+      selectedAIs: user.selectedAIs || [],
+      hasPassword: !!user.password
+    }
   });
 });
 
@@ -2760,7 +2992,7 @@ app.post("/api/council/query", async (req, res) => {
     const goalsContext = userGoals
       ? `User's Active Life Goals:
 - Primary Vision: ${userGoals.primaryAppGoal || "Comprehensive Mastery & Sovereignty"}
-- Health & Physique Goal: ${userGoals.healthGoal || "Spider-Man physique, strength, longevity"}
+- Health & Physique Goal: ${userGoals.healthGoal || "Athletic physique, strength, longevity"}
 - Career & Financial Goal: ${userGoals.careerGoal || "High career leverage & ₹5M capital reserves"}
 - Skills & Cognitive Goal: ${userGoals.skillsGoal || "Deep intellectual mastery & GMAT 740"}
 - Lifestyle & Peace Goal: ${userGoals.lifestyleGoal || "Peace of mind, sovereign freedom, work-life balance"}`
@@ -2949,7 +3181,7 @@ Write a custom report containing:
 1. GREETING & OPERATIVE COMMAND (e.g. "Good Morning, ${userName}. Time to achieve peak potential.")
 2. STATE ANALYSIS (Body, Mind, Career, Finance, Sports, travel progress)
 3. FAILURE PREDICTION (Where is ${userName} at risk? Sleep deficit? Macro underflow? Cognitive fatigue?)
-4. SUGGESTED ACTIONABLE ROUINTES & STRATEGIC RECOMMENDATIONS (Specific physical workouts like Spider-Man Plan rehab, meals with macro swaps, investment insights, or CAT focus areas)
+4. SUGGESTED ACTIONABLE ROUINTES & STRATEGIC RECOMMENDATIONS (Specific physical workouts like athletic rehab, meals with macro swaps, investment insights, or CAT focus areas)
 
 Format the response with elegant Markdown headers, spacing, and short, crisp visual paragraphs. Avoid cliché AI introductions. Speak with the combined authority of a Silicon Valley chief strategist, an ancient Zen master, and an elite Olympic athletics coach.`;
 
@@ -3618,9 +3850,9 @@ app.post("/api/store/scheduler/generate-daily-goals", async (req, res) => {
   const getOfflineDailyGoals = () => {
     return [
       { id: "dg1", title: "Target absolute zero pending tasks by 10 PM", completed: false, type: "productivity", reason: "Minimizes cognitive baggage and promotes optimal neural sleep states." },
-      { id: "dg2", title: "Apply Minoxidil and massage scalp for 5 mins", completed: false, type: "hair", reason: "Treatment continuity protects follicular density." },
+      { id: "dg2", title: "Execute daily sovereign mindfulness & alignment check", completed: false, type: "mind", reason: "Centered mental clarity ensures steady cognitive focus." },
       { id: "dg3", title: "Substitute heavy overhead press with slow-motion face pulls", completed: false, type: "fitness", reason: "Shoulder rotator-cuff active rehab ensures joint preservation." },
-      { id: "dg4", title: "Analyze 5 sentence correction error loops under full morning focus", completed: false, type: "mba", reason: "Early Verbal discipline builds an elite mock readiness framework." }
+      { id: "dg4", title: "Uninterrupted deep work sprint on highest priority objective", completed: false, type: "skills", reason: "Deliberate practice compounds long-term leverage." }
     ];
   };
 
@@ -3997,66 +4229,66 @@ app.post("/api/ai/day-planner", async (req, res) => {
   let fallbackAspects = [
     { 
       aspect: "body", 
-      title: "Body & Bio-Alchemy",
+      title: "Body & Vitality",
       icon: "🏋️‍♂️",
-      longTermGoalLinked: "Spider-Man 8% Body Fat & 74kg Lean Physique",
-      primaryTarget: "Hypertrophy Push/Pull Workout (75m)", 
-      secondaryTarget: "180g Protein · 3.5L Water Hydration",
+      longTermGoalLinked: "Physical Energy, Strength & Health",
+      primaryTarget: "Strength Workout & Movement (60m)", 
+      secondaryTarget: "Nutritious Fueling & Hydration",
       timeSlot: "07:15 AM",
-      alignmentRationale: "Direct stimulus for lean muscular density and metabolic rate optimization."
+      alignmentRationale: "Builds sustained physical energy and stamina for the day."
     },
     { 
-      aspect: "cognitive", 
-      title: "Cognitive Mastery",
+      aspect: "learning", 
+      title: "Deep Focus & Mastery",
       icon: "🧠",
-      longTermGoalLinked: "GMAT 740+ & Top-Tier Global MBA Admit",
-      primaryTarget: "Analytical Problem Set & Question Review (90m)", 
-      secondaryTarget: "Review Error Log & Timing Metrics",
+      longTermGoalLinked: "High-Value Skill Acquisition & Deep Focus",
+      primaryTarget: "Deliberate Practice & Learning Block (90m)", 
+      secondaryTarget: "Synthesize Key Notes & Action Items",
       timeSlot: "09:30 AM",
-      alignmentRationale: "Sharpens pattern recognition in verbal arguments and argument dissection."
+      alignmentRationale: "Deep uninterrupted execution on primary priorities."
     },
     { 
       aspect: "zen", 
-      title: "Soul & Zen Sanctuary",
+      title: "Mindfulness & Calm",
       icon: "🧘",
-      longTermGoalLinked: "100 Hours Vipassana Satori & Unshakable Equanimity",
-      primaryTarget: "25m Morning Vipassana Breath Meditation", 
-      secondaryTarget: "Evening Twilight Nature Walk & Digital Fast",
+      longTermGoalLinked: "Mental Clarity & Calm Presence",
+      primaryTarget: "20m Morning Mindful Stillness", 
+      secondaryTarget: "Evening Nature Walk & Digital Pause",
       timeSlot: "06:30 PM",
-      alignmentRationale: "Strengthens prefrontal-amygdala regulation and deep mental clarity."
+      alignmentRationale: "Cultivates poise, clarity, and stress resilience."
     },
     { 
       aspect: "build", 
       title: "Build & Creation",
       icon: "⚡",
-      longTermGoalLinked: "Sovereign Engineering & Product Summit",
-      primaryTarget: "App Architecture & Code Execution (120m)", 
-      secondaryTarget: "Module Testing & Refactoring",
+      longTermGoalLinked: "Product & Goal Execution",
+      primaryTarget: "Project Sprint & Engineering (90m)", 
+      secondaryTarget: "Review Progress & Next Iterations",
       timeSlot: "02:00 PM",
-      alignmentRationale: "Compounds technical output and creative flow state mastery."
+      alignmentRationale: "Direct progress toward your primary creative project."
     },
     { 
       aspect: "finance", 
-      title: "Wealth & Sovereign Treasury",
+      title: "Resource Discipline",
       icon: "💎",
-      longTermGoalLinked: "₹50 Lakh Sovereign Investment Reserve",
-      primaryTarget: "Zero Discretionary Spending Today", 
-      secondaryTarget: "Log and Audit Treasury Balances (25m)",
+      longTermGoalLinked: "Disciplined Finances & Savings Growth",
+      primaryTarget: "Mindful Spending & Budget Audit (15m)", 
+      secondaryTarget: "Verify Savings & Allocation Goals",
       timeSlot: "08:30 PM",
-      alignmentRationale: "Preserves surplus cashflow for high-conviction automated compounding."
+      alignmentRationale: "Preserves surplus cashflow for long-term independence."
     }
   ];
 
   let fallbackSchedule = [
-    { time: "06:30 AM", title: "Circadian Ignition & Hydration", detail: "1.0L water + electrolyte pinch, 10 min natural sunlight", duration: "30 min", category: "body", longTermAlignment: "Circadian Rhythm & Energy" },
-    { time: "07:15 AM", title: "Kinetic Hypertrophy & Strength Session", detail: "Heavy compound resistance training calibrated to progressive overload", duration: "75 min", category: "body", longTermAlignment: "Lean Muscle & Power" },
-    { time: "08:35 AM", title: "Sovereign Anabolic Breakfast", detail: "High-protein meal (50g protein) + hydration to optimize sustained focus", duration: "30 min", category: "body", longTermAlignment: "Protein Synthesis" },
-    { time: "09:15 AM", title: "Core Cognitive / Architecture Sprint", detail: "Uninterrupted deep work on highest leverage intellectual target", duration: "120 min", category: "build", longTermAlignment: "Core Intellectual Goal" },
-    { time: "12:30 PM", title: "Mindful Lunch & Recovery Walk", detail: "Nutrient-dense fuel & 20 min outdoor walk to down-regulate sympathetic tone", duration: "45 min", category: "body", longTermAlignment: "Cellular Recovery" },
-    { time: "02:00 PM", title: "Secondary Strategic Execution Block", detail: "Analytical problem set or creative synthesis sprint", duration: "90 min", category: "cognitive", longTermAlignment: "Strategic Milestones" },
-    { time: "06:30 PM", title: "Vipassana Meditation & Stillness", detail: "25 min conscious breath observation and posture stillness", duration: "35 min", category: "zen", longTermAlignment: "Mental Equanimity" },
-    { time: "08:15 PM", title: "Treasury Audit & Zero-Waste Verification", detail: "Audit day expenditures, verify zero impulsive outflow", duration: "25 min", category: "finance", longTermAlignment: "Treasury Compound Reserve" },
-    { time: "09:45 PM", title: "Digital Sunset & Deep Sleep Architecture", detail: "Dim amber lighting, journal review, total screen cut-off", duration: "30 min", category: "body", longTermAlignment: "Deep Sleep Restoration" }
+    { time: "06:30 AM", title: "Morning Hydration & Sunlight", detail: "Hydrate, 10 min natural morning sunlight", duration: "30 min", category: "body", longTermAlignment: "Daily Energy & Vitality" },
+    { time: "07:15 AM", title: "Physical Training & Movement", detail: "Energizing workout session calibrated to your fitness goals", duration: "60 min", category: "body", longTermAlignment: "Health & Vitality" },
+    { time: "08:35 AM", title: "Nutritious Fueling", detail: "Wholesome balanced breakfast & hydration", duration: "30 min", category: "body", longTermAlignment: "Energy" },
+    { time: "09:15 AM", title: "Primary Deep Work Block", detail: "Uninterrupted focus sprint on your highest leverage goal", duration: "90 min", category: "build", longTermAlignment: "Core Goal Progress" },
+    { time: "12:30 PM", title: "Lunch & Recovery Walk", detail: "Nutritious meal & 15 min outdoor walk to refresh and recharge", duration: "45 min", category: "body", longTermAlignment: "Daily Recovery" },
+    { time: "02:00 PM", title: "Project & Learning Sprint", detail: "Deep execution block on secondary objectives or study", duration: "90 min", category: "learning", longTermAlignment: "Skill & Project Milestones" },
+    { time: "06:30 PM", title: "Mindful Stillness & Wind-Down", detail: "20 min breath awareness and calming pause", duration: "30 min", category: "zen", longTermAlignment: "Clarity & Calm" },
+    { time: "08:15 PM", title: "Daily Review & Tomorrow Prep", detail: "Review completed wins, organize priorities for tomorrow", duration: "25 min", category: "finance", longTermAlignment: "Daily Order" },
+    { time: "09:45 PM", title: "Digital Sunset & Deep Rest", detail: "Dim amber lighting, relax, and transition to deep rest", duration: "30 min", category: "body", longTermAlignment: "Sleep Restoration" }
   ];
 
   if (Array.isArray(selectedAIs) && selectedAIs.length > 0) {
@@ -4096,23 +4328,23 @@ app.post("/api/ai/day-planner", async (req, res) => {
   }
 
   const fallback = {
-    welcomeGreeting: `Welcome ${userName}! Let's forge a legendary, highly aligned day across all pillars of your life.`,
-    planningScore: 94,
+    welcomeGreeting: `Welcome ${userName}! Let's build an optimal, focused day tailored to your priorities.`,
+    planningScore: 95,
     planningScoreBreakdown: {
       balance: 96,
-      cognitivePacing: 92,
+      focusPacing: 95,
       physicalFeasibility: 95,
-      soulRecovery: 93
+      soulRecovery: 94
     },
     aiRecommendations: [
-      `Front-load high-demand cognitive sprint for your primary focus during peak morning energy.`,
-      `Ensure adequate hydration and protein fueling to sustain physical and mental endurance.`,
-      `Execute each scheduled block with dedicated presence without multi-tasking.`,
-      `Protect the evening digital sunset buffer to ensure deep neurological recovery.`
+      `Tackle your highest priority deep work during your peak morning energy window.`,
+      `Stay hydrated and fuel your body with wholesome nutrition throughout the day.`,
+      `Dedicate your full attention to each planned block without distraction.`,
+      `Wind down in the evening to recharge and sleep deeply.`
     ],
     coreFocus: userBrainDump.trim() 
-      ? `Execute: ${userBrainDump.substring(0, 100)}... with razor-sharp balance across all selected goals.`
-      : (selectedAIs.length > 0 ? `Sovereign execution anchored on ${selectedAIs.map((a: any) => a.name).join(", ")}.` : "Execute daily protocols with pristine intent and balance."),
+      ? `Focus: ${userBrainDump.substring(0, 100)}... with disciplined follow-through.`
+      : (selectedAIs.length > 0 ? `Execution anchored on ${selectedAIs.map((a: any) => a.name).join(", ")}.` : "Execute daily protocols with clarity and purpose."),
     aspects: fallbackAspects,
     generatedSchedule: fallbackSchedule
   };
@@ -4125,36 +4357,34 @@ app.post("/api/ai/day-planner", async (req, res) => {
     const aiContextText = Array.isArray(selectedAIs) && selectedAIs.length > 0
       ? selectedAIs.map((a: any, i: number) => 
           `${i+1}. [${a.name} - ${a.specialty} (${a.category || "CORE"})]
-          - Individual Long-Term Goal: "${a.individualGoal}"
+          - Long-Term Goal: "${a.individualGoal}"
           - Weekly Target: "${a.weeklyTarget}"
           - Primary Daily Tasks: ${JSON.stringify(a.dailyTasks || [])}`
         ).join("\n")
-      : `1. BODY: Spider-Man Physique (Sub-8-10% Body Fat, 74kg Lean Mass, Anabolic Discipline)
-2. COGNITIVE: GMAT 740+ & Admission to Top-Tier Global MBA
-3. ZEN: 100 Hours Vipassana Meditation, Unshakable Emotional Mastery
-4. BUILD: Sovereign Software Architect & Creation
-5. TREASURY: ₹50 Lakh Sovereign Liquid Investment Reserve & Zero Waste`;
+      : `1. Physical Health & Energy: Daily movement, fitness, and vitality
+2. Learning & Skill Growth: Deliberate practice and deep work
+3. Mindfulness & Calm: Clarity, meditation, and equanimity
+4. Projects & Creation: Engineering and goal milestone execution
+5. Financial Discipline: Budget awareness and mindful spending`;
 
-    const prompt = `You are Buddha Core AI, the sovereign executive operating system and personal mentor for ${userName}.
-${userName} is conducting their daily sovereign alignment ritual.
+    const prompt = `You are an AI Day Planner and executive schedule synthesizer for ${userName}.
+${userName} is organizing their schedule for today.
 
-USER CONTEXT & INPUTS:
+USER INPUT:
 - Name: ${userName}
-- Raw Brain Dump / Thoughts on Mind: "${userBrainDump || "Not provided - evaluate general sovereign optimal day"}"
-- Specific Schedule Commitments / Timing Notes: "${userScheduleNotes || "Not provided - optimize ideal high-energy day"}"
-- Current Telemetry Metrics: ${JSON.stringify(metrics || {})}
+- User's Goal & Focus for Today (Raw Input): "${userBrainDump || "Not provided - synthesize an optimal productive day"}"
+- Time Commitments / Constraints: "${userScheduleNotes || "Not provided - optimize normal workday"}"
 - Time of Day: ${timeOfDay || "Morning"}
-- Recent Activity Logs: ${JSON.stringify(recentLogs.slice(0, 6) || [])}
 
-USER'S ACTIVE AI COUNCIL & SPECIFIC GOALS (CRITICAL SOURCE OF TRUTH):
+USER'S ACTIVE APPS & PRIORITIES:
 ${aiContextText}
 
-CRITICAL MANDATE ON SCHEDULE AND DURATIONS:
-1. Do NOT simply make everything a 45-minute session! Suggest a realistic, highly personalized daily plan in everything based on their specific goals provided.
-2. Calibrate realistic durations suited to each domain (e.g. 75-90 min for heavy strength/hypertrophy training, 90-120 min for deep code architecture/software engineering, 60-90 min for intensive cognitive analytical problem solving, 30-40 min for Vipassana meditation/stillness, 20-30 min for treasury audits, 30 min for evening wind-down).
-3. Every scheduled item must explicitly advance one of the user's specific goals above.
-4. Welcome ${userName} warmly by name with an empowering, stoic greeting.
-5. Provide a planning score (65-99) with breakdown, 3-4 concrete AI recommendations, and core focus intention.
+CRITICAL RULES:
+1. Build a realistic, personalized daily schedule based directly on the user's input and their active goals.
+2. Calibrate realistic durations for each block (e.g. 60-90 min for workout, 90-120 min for deep project work, 30 min for reading/study, 20-30 min for meditation/walk, 30 min for review).
+3. Do NOT include generic buzzwords or exam acronyms unless the user explicitly requested them.
+4. Welcome ${userName} warmly.
+5. Provide 3-4 practical, actionable recommendations and a crisp headline focus.
 
 Respond ONLY with valid JSON with this exact schema:
 {
@@ -4162,7 +4392,7 @@ Respond ONLY with valid JSON with this exact schema:
   "planningScore": number (integer 65-99),
   "planningScoreBreakdown": {
     "balance": number (0-100),
-    "cognitivePacing": number (0-100),
+    "focusPacing": number (0-100),
     "physicalFeasibility": number (0-100),
     "soulRecovery": number (0-100)
   },
@@ -4171,17 +4401,17 @@ Respond ONLY with valid JSON with this exact schema:
     "string",
     "string"
   ],
-  "coreFocus": "string (1 crisp, powerful sovereign headline intention)",
+  "coreFocus": "string (1 crisp headline focus for today)",
   "aspects": [
     {
       "aspect": "string (category key)",
       "title": "string",
       "icon": "string (emoji)",
-      "longTermGoalLinked": "string (the exact goal linked)",
+      "longTermGoalLinked": "string",
       "primaryTarget": "string",
       "secondaryTarget": "string",
       "timeSlot": "string (e.g. 07:15 AM)",
-      "alignmentRationale": "string (why this short-term act builds the long-term summit)"
+      "alignmentRationale": "string"
     }
   ],
   "generatedSchedule": [

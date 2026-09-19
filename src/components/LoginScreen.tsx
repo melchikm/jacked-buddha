@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Shield, Key, Eye, EyeOff, Sparkles, Sun, MapPin, Clock,
-  Fingerprint, Compass, Target, ArrowRight, UserCheck, CheckCircle2, Cloud
+  Compass, Target, ArrowRight, UserCheck, CheckCircle2, Cloud
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import AtmosphericBackdrop from "./AtmosphericBackdrop";
@@ -45,15 +45,19 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [isFaceIDSensing, setIsFaceIDSensing] = useState(false);
 
-  // Dedicated Google username prompt state
+  // Dedicated Google account setup modal state
   const [isPromptingGoogleUsername, setIsPromptingGoogleUsername] = useState(false);
   const [googleAuthPayload, setGoogleAuthPayload] = useState<{
     fbUser: any;
     existingGoals: any;
   } | null>(null);
+  const [googleDisplayNameInput, setGoogleDisplayNameInput] = useState("");
   const [googleUsernameInput, setGoogleUsernameInput] = useState("");
+  const [googlePasswordInput, setGooglePasswordInput] = useState("");
+  const [googleConfirmPasswordInput, setGoogleConfirmPasswordInput] = useState("");
+  const [showGooglePassword, setShowGooglePassword] = useState(false);
+  const [showGoogleConfirmPassword, setShowGoogleConfirmPassword] = useState(false);
   const [googleUsernameError, setGoogleUsernameError] = useState("");
   const [isSubmittingGoogleUsername, setIsSubmittingGoogleUsername] = useState(false);
 
@@ -75,8 +79,38 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
       const existingGoals = await getUserGoalsFromFirestore(fbUser.uid);
       const existingProfile = await getUserProfileFromFirestore(fbUser.uid);
 
-      // Pre-populate suggestion from existing profile or email handle
+      // Check server if this Google user already exists and has established a password
+      const checkRes = await fetch(
+        `/api/auth/check-google-user?email=${encodeURIComponent(fbUser.email || "")}&googleUid=${encodeURIComponent(fbUser.uid)}`
+      );
+      const checkData = await checkRes.json();
+
+      // If user already exists and already has a password, enter directly
+      if (checkData.success && checkData.exists && checkData.hasPassword && checkData.user) {
+        const cleanKey = (checkData.user.username || fbUser.displayName || "explorer").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const hasPriorSession = typeof window !== "undefined" && (
+          localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
+          localStorage.getItem(`zen-db-state-${checkData.user.username}`) !== null
+        );
+
+        const loggedIn = {
+          ...checkData.user,
+          isOnboarded: !!checkData.user.isOnboarded || hasPriorSession,
+          welcomeAcknowledged: !!hasPriorSession || !!checkData.user.isOnboarded,
+          hasPassword: true
+        };
+
+        if (loggedIn.isOnboarded && typeof window !== "undefined") {
+          localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
+        }
+
+        onLoginSuccess(loggedIn);
+        return;
+      }
+
+      // If user is new or hasn't established mandatory password, open Google Account Setup modal
       const initialCandidate =
+        checkData.existingUsername ||
         existingProfile?.username ||
         existingProfile?.name ||
         fbUser.displayName ||
@@ -87,9 +121,11 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
         fbUser,
         existingGoals
       });
+      setGoogleDisplayNameInput(checkData.existingName || fbUser.displayName || initialCandidate);
       setGoogleUsernameInput(initialCandidate);
+      setGooglePasswordInput("");
+      setGoogleConfirmPasswordInput("");
       setGoogleUsernameError("");
-      // Prompt user to enter / confirm their sovereign username
       setIsPromptingGoogleUsername(true);
     } catch (err: any) {
       console.error("Google sign-in error:", err);
@@ -103,9 +139,26 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
     e.preventDefault();
     if (!googleAuthPayload) return;
 
+    const chosenName = googleDisplayNameInput.trim() || googleUsernameInput.trim();
     const chosenHandle = googleUsernameInput.trim();
+
+    if (!chosenName) {
+      setGoogleUsernameError("Please enter your display name.");
+      return;
+    }
+
     if (!chosenHandle || chosenHandle.length < 2) {
       setGoogleUsernameError("Please enter a username of at least 2 characters.");
+      return;
+    }
+
+    if (!googlePasswordInput || googlePasswordInput.length < 4) {
+      setGoogleUsernameError("Password is mandatory and must be at least 4 characters.");
+      return;
+    }
+
+    if (googlePasswordInput !== googleConfirmPasswordInput) {
+      setGoogleUsernameError("Passwords do not match. Please verify.");
       return;
     }
 
@@ -116,32 +169,67 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
     try {
       const { fbUser, existingGoals } = googleAuthPayload;
 
+      // Register / update Google account on backend server with mandatory password
+      const res = await fetch("/api/auth/google-setup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          googleUid: fbUser.uid,
+          email: fbUser.email,
+          name: chosenName,
+          username: chosenHandle,
+          password: googlePasswordInput.trim(),
+          photoURL: fbUser.photoURL || undefined
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setGoogleUsernameError(data.message || "Failed to finalize account credentials.");
+        sound.playErrorChord();
+        setIsSubmittingGoogleUsername(false);
+        return;
+      }
+
       await syncUserProfile({
         uid: fbUser.uid,
-        name: chosenHandle,
+        name: chosenName,
         username: chosenHandle,
         email: fbUser.email || "",
         photoURL: fbUser.photoURL || undefined,
         isOnboarded: !!existingGoals?.primaryAppGoal
       });
 
-      // Flush any queued offline changes to the authenticated user account
+      // Flush any queued offline changes
       offlineQueue.flushQueue();
 
+      const cleanKey = chosenHandle.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const hasPriorSession = typeof window !== "undefined" && (
+        localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
+        localStorage.getItem(`zen-db-state-${chosenHandle}`) !== null
+      );
+
       const loggedIn = {
-        name: chosenHandle,
+        name: chosenName,
         username: chosenHandle,
         email: fbUser.email || `${chosenHandle.toLowerCase()}@vita.io`,
         photoURL: fbUser.photoURL || undefined,
         longTermGoals: existingGoals || undefined,
-        isOnboarded: !!existingGoals?.primaryAppGoal
+        isOnboarded: !!existingGoals?.primaryAppGoal || hasPriorSession,
+        welcomeAcknowledged: hasPriorSession || !!existingGoals?.primaryAppGoal,
+        hasPassword: true
       };
 
+      if (loggedIn.isOnboarded && typeof window !== "undefined") {
+        localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
+      }
+
+      sound.playSingingBowl();
       setIsPromptingGoogleUsername(false);
       onLoginSuccess(loggedIn);
     } catch (err: any) {
-      console.error("Error finalizing Google username:", err);
-      setGoogleUsernameError(err?.message || "Failed to register username. Please retry.");
+      console.error("Error finalizing Google setup:", err);
+      setGoogleUsernameError(err?.message || "Failed to register credentials. Please retry.");
     } finally {
       setIsSubmittingGoogleUsername(false);
     }
@@ -165,7 +253,20 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
     setErrorMsg("");
     sound.playSubtleClick();
 
-    const targetUser = (forceUsername || username).trim() || "Explorer";
+    const targetUser = (forceUsername || username).trim();
+    if (!targetUser) {
+      setErrorMsg("Please enter your username or Google Mail.");
+      setIsLoading(false);
+      sound.playErrorChord();
+      return;
+    }
+
+    if (!password || !password.trim()) {
+      setErrorMsg("Password is mandatory. Please enter your password.");
+      setIsLoading(false);
+      sound.playErrorChord();
+      return;
+    }
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -173,144 +274,48 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: targetUser,
-          password: password || "vita"
+          password: password.trim()
         })
       });
       const data = await res.json();
 
-      const cleanKey = targetUser.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const hasPriorSession = typeof window !== "undefined" && (
-        localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
-        localStorage.getItem(`zen-db-state-${targetUser}`) !== null
-      );
-
-      if (data.success && data.user) {
-        const isExistingUser = data.user.isOnboarded || hasPriorSession || (Array.isArray(data.user.selectedAIs) && data.user.selectedAIs.length > 0);
-        const loggedIn = {
-          name: data.user.name || targetUser,
-          username: data.user.username || targetUser,
-          email: data.user.email || `${targetUser.toLowerCase()}@vita.io`,
-          longTermGoals: data.user.longTermGoals,
-          selectedAIs: data.user.selectedAIs,
-          isOnboarded: !!isExistingUser,
-          welcomeAcknowledged: !!isExistingUser
-        };
-
-        if (isExistingUser && typeof window !== "undefined") {
-          localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
-        }
-
-        onLoginSuccess(loggedIn);
-      } else {
-        // Universal fallback for existing/returning user
-        const fallbackUser = {
-          name: targetUser,
-          username: targetUser,
-          email: `${targetUser.toLowerCase()}@vita.io`,
-          isOnboarded: hasPriorSession,
-          welcomeAcknowledged: hasPriorSession
-        };
-        if (hasPriorSession && typeof window !== "undefined") {
-          localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
-        }
-        onLoginSuccess(fallbackUser);
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.message || "Invalid credentials. Please verify your password or log in with Google Mail.");
+        sound.playErrorChord();
+        setIsLoading(false);
+        return;
       }
-    } catch (e) {
-      // Offline universal fallback
-      const cleanKey = targetUser.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+      const cleanKey = (data.user?.username || targetUser).toLowerCase().replace(/[^a-z0-9]/g, "");
       const hasPriorSession = typeof window !== "undefined" && (
         localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
         localStorage.getItem(`zen-db-state-${targetUser}`) !== null
       );
-      const fallbackUser = {
-        name: targetUser,
-        username: targetUser,
-        email: `${targetUser.toLowerCase()}@vita.io`,
-        isOnboarded: hasPriorSession,
-        welcomeAcknowledged: hasPriorSession
+
+      const loggedIn = {
+        name: data.user.name || targetUser,
+        username: data.user.username || targetUser,
+        email: data.user.email || `${targetUser.toLowerCase()}@vita.io`,
+        photoURL: data.user.photoURL,
+        longTermGoals: data.user.longTermGoals,
+        selectedAIs: data.user.selectedAIs,
+        isOnboarded: !!data.user.isOnboarded || hasPriorSession,
+        welcomeAcknowledged: hasPriorSession || !!data.user.isOnboarded,
+        hasPassword: true
       };
-      if (hasPriorSession && typeof window !== "undefined") {
+
+      if (loggedIn.isOnboarded && typeof window !== "undefined") {
         localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
       }
-      onLoginSuccess(fallbackUser);
+
+      sound.playSingingBowl();
+      onLoginSuccess(loggedIn);
+    } catch (e: any) {
+      console.error("Login network error:", e);
+      setErrorMsg("Unable to connect to server. Please try again or log in with Google Mail.");
+      sound.playErrorChord();
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const triggerBiometric = async () => {
-    setIsFaceIDSensing(true);
-    setErrorMsg("");
-    sound.playSubtleClick();
-
-    const targetUser = username.trim() || "Explorer";
-
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: targetUser,
-          type: "biometric"
-        })
-      });
-      const data = await res.json();
-      setIsFaceIDSensing(false);
-
-      const cleanKey = targetUser.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const hasPriorSession = typeof window !== "undefined" && (
-        localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
-        localStorage.getItem(`zen-db-state-${targetUser}`) !== null
-      );
-
-      if (data.success && data.user) {
-        const isExistingUser = data.user.isOnboarded || hasPriorSession || (Array.isArray(data.user.selectedAIs) && data.user.selectedAIs.length > 0);
-        const loggedIn = {
-          name: data.user.name || targetUser,
-          username: data.user.username || targetUser,
-          email: data.user.email || `${targetUser.toLowerCase()}@vita.io`,
-          longTermGoals: data.user.longTermGoals,
-          selectedAIs: data.user.selectedAIs,
-          isOnboarded: !!isExistingUser,
-          welcomeAcknowledged: !!isExistingUser
-        };
-
-        if (isExistingUser && typeof window !== "undefined") {
-          localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
-        }
-
-        onLoginSuccess(loggedIn);
-      } else {
-        const fallbackUser = {
-          name: targetUser,
-          username: targetUser,
-          email: `${targetUser.toLowerCase()}@vita.io`,
-          isOnboarded: hasPriorSession,
-          welcomeAcknowledged: hasPriorSession
-        };
-        if (hasPriorSession && typeof window !== "undefined") {
-          localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
-        }
-        onLoginSuccess(fallbackUser);
-      }
-    } catch {
-      setIsFaceIDSensing(false);
-      const cleanKey = targetUser.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const hasPriorSession = typeof window !== "undefined" && (
-        localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
-        localStorage.getItem(`zen-db-state-${targetUser}`) !== null
-      );
-      const fallbackUser = {
-        name: targetUser,
-        username: targetUser,
-        email: `${targetUser.toLowerCase()}@vita.io`,
-        isOnboarded: hasPriorSession,
-        welcomeAcknowledged: hasPriorSession
-      };
-      if (hasPriorSession && typeof window !== "undefined") {
-        localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
-      }
-      onLoginSuccess(fallbackUser);
     }
   };
 
@@ -416,47 +421,52 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
 
           <div className="text-center mb-6">
             <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase font-semibold block">
-              UNIVERSAL ACCESS
+              SOVEREIGN AUTHENTICATION
             </span>
             <span className="text-xl sm:text-2xl text-white font-bold block mt-1 tracking-tight">
-              Begin Your Journey
+              Sign In to Vita OS
             </span>
           </div>
 
-          {/* Google Sign-in with Firebase */}
-          <button
-            type="button"
-            disabled={isGoogleLoading}
-            onClick={handleGoogleSignIn}
-            className="w-full py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/15 hover:border-amber-400/50 rounded-xl text-white text-xs font-semibold flex items-center justify-center gap-2.5 transition-all cursor-pointer group shadow-sm mb-4"
-          >
-            {isGoogleLoading ? (
-              <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.26 21.36 7.34 24 12 24z"/>
-                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.97 0 12s.46 3.84 1.26 5.42l4.02-3.15z"/>
-                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                </svg>
-                <span>Continue with Google</span>
-                <span className="text-[10px] text-amber-400 font-mono bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">Firebase Auth</span>
-              </>
-            )}
-          </button>
+          {/* Primary: Google Mail Sign-in */}
+          <div className="space-y-2 mb-5">
+            <button
+              type="button"
+              disabled={isGoogleLoading}
+              onClick={handleGoogleSignIn}
+              className="w-full py-3.5 px-4 bg-white/10 hover:bg-white/15 border border-amber-400/40 hover:border-amber-400 rounded-xl text-white text-xs font-bold flex items-center justify-center gap-2.5 transition-all cursor-pointer group shadow-lg shadow-amber-500/10"
+            >
+              {isGoogleLoading ? (
+                <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.26 21.36 7.34 24 12 24z"/>
+                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.97 0 12s.46 3.84 1.26 5.42l4.02-3.15z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                  </svg>
+                  <span className="text-white font-semibold">Continue with Google Mail</span>
+                  <span className="text-[10px] text-amber-300 font-mono bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/30">Google Auth</span>
+                </>
+              )}
+            </button>
+            <p className="text-[11px] text-zinc-400 text-center">
+              New to Vita? Sign in with Google Mail to create your sovereign account & set your mandatory password.
+            </p>
+          </div>
 
           <div className="flex items-center gap-3 my-4">
             <div className="flex-1 h-[1px] bg-white/10" />
-            <span className="text-[10px] text-zinc-400 uppercase tracking-wider font-mono">or sign in with handle</span>
+            <span className="text-[10px] text-zinc-400 uppercase tracking-wider font-mono">or returning sign-in</span>
             <div className="flex-1 h-[1px] bg-white/10" />
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Name / Handle */}
+            {/* Username or Email */}
             <div>
               <label className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider block mb-1.5">
-                Your Name or Handle
+                Username or Google Mail
               </label>
               <div className="relative">
                 <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
@@ -465,33 +475,34 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none focus:border-amber-400 focus:bg-black/60 transition-all placeholder-zinc-500"
-                  placeholder="e.g. Alex, Maya, Jordan..."
+                  className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none focus:border-amber-400 focus:bg-black/60 transition-all placeholder-zinc-500 font-mono"
+                  placeholder="e.g. melchi, orion, or email@gmail.com"
                 />
               </div>
             </div>
 
-            {/* Password (Optional for universal access) */}
+            {/* Mandatory Password */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <label className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider">
-                  Passcode (Optional)
+                  Password <span className="text-amber-400">*</span>
                 </label>
-                <span className="text-[10px] text-zinc-500">Universal Login Enabled</span>
+                <span className="text-[10px] text-amber-400/90 font-mono bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">Mandatory</span>
               </div>
               <div className="relative">
                 <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                 <input
                   type={showPassword ? "text" : "password"}
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-10 pr-11 text-white text-sm focus:outline-none focus:border-amber-400 focus:bg-black/60 transition-all placeholder-zinc-500 font-mono"
-                  placeholder="Enter any passcode or leave blank"
+                  placeholder="Enter your mandatory password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -523,46 +534,15 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-black" />
-                  <span>Enter Vita OS</span>
+                  <span>Sign In to Vita OS</span>
                   <ArrowRight className="w-4 h-4 text-black" />
                 </>
               )}
             </button>
-
-            {/* Direct Life Coach Entry */}
-            <button
-              type="button"
-              onClick={() => {
-                const targetUser = username.trim() || "Explorer";
-                onLoginSuccess({
-                  name: targetUser,
-                  username: targetUser,
-                  email: `${targetUser.toLowerCase()}@vita.io`
-                });
-              }}
-              className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-amber-300 text-xs font-semibold rounded-xl border border-amber-500/30 flex items-center justify-center gap-2 transition cursor-pointer"
-            >
-              <Target className="w-4 h-4 text-amber-400" />
-              <span>Meet Your AI Life Coach</span>
-            </button>
           </form>
 
-          {/* Quick Biometrics */}
+          {/* Complete Data Reset Action */}
           <div className="mt-5 pt-5 border-t border-white/5 flex flex-col items-center">
-            <button
-              onClick={triggerBiometric}
-              disabled={isFaceIDSensing}
-              className={`p-3 rounded-full bg-white/5 border border-white/10 hover:border-amber-500/40 hover:bg-white/10 transition-all flex items-center justify-center group cursor-pointer ${
-                isFaceIDSensing ? "scale-95 border-amber-400 bg-amber-500/10" : ""
-              }`}
-            >
-              <Fingerprint className={`w-6 h-6 ${isFaceIDSensing ? "text-amber-400 animate-pulse" : "text-zinc-400 group-hover:text-amber-400"}`} />
-            </button>
-            <span className="text-[11px] text-zinc-400 mt-2">
-              {isFaceIDSensing ? "Sensing Biometric..." : "Touch ID / Face ID Fast Access"}
-            </span>
-
-            {/* Complete Data Reset Action */}
             <button
               type="button"
               onClick={async () => {
@@ -623,29 +603,29 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
             VITA · UNIVERSAL LIFE ARCHITECTURE
           </p>
           <p className="text-[10px] text-zinc-400 mt-0.5">
-            Open & Adaptive for Every Individual
+            Google Mail Authentication & Mandatory Password Security
           </p>
         </div>
       </div>
 
-      {/* Google Sign-in Username Confirmation Modal */}
+      {/* Google Sign-in Account & Mandatory Password Setup Modal */}
       <AnimatePresence>
         {isPromptingGoogleUsername && googleAuthPayload && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
           >
             <motion.div
               initial={{ scale: 0.94, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.94, opacity: 0, y: 15 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-md bg-stone-900 border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden"
+              className="w-full max-w-md bg-stone-900 border border-amber-500/35 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 relative overflow-hidden"
             >
               {/* Subtle top ambient glow */}
-              <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-48 h-20 bg-amber-500/15 blur-2xl pointer-events-none rounded-full" />
+              <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-52 h-20 bg-amber-500/20 blur-2xl pointer-events-none rounded-full" />
 
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-medium">
@@ -667,49 +647,124 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
                       d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16.5C3.7 20.2 7.5 23.5 12 23.5z"
                     />
                   </svg>
-                  <span>Google Account Authenticated</span>
+                  <span>Google Mail Authenticated</span>
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                  Choose Your Username
+                  Set Up Sovereign Profile & Password
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Enter your unique sovereign handle. Your AI Council, daily targets, and reports will strictly use this identity.
+                  A password is <strong className="text-amber-300">mandatory</strong>. When you sign out in the future, you will use your username and password to log back in. Your name and password can also be updated anytime after logging in.
                 </p>
                 {googleAuthPayload.fbUser.email && (
-                  <div className="text-[11px] text-zinc-500 font-mono truncate">
-                    Linked: {googleAuthPayload.fbUser.email}
+                  <div className="text-[11px] text-zinc-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 font-mono truncate">
+                    Google Mail: <span className="text-amber-300 font-semibold">{googleAuthPayload.fbUser.email}</span>
                   </div>
                 )}
               </div>
 
-              <form onSubmit={handleConfirmGoogleUsername} className="space-y-4">
-                <div className="space-y-1.5">
+              <form onSubmit={handleConfirmGoogleUsername} className="space-y-3.5">
+                {/* Display Name */}
+                <div className="space-y-1">
                   <label className="text-xs font-semibold text-zinc-300">
-                    Sovereign Username
+                    Display Name
                   </label>
                   <input
                     type="text"
-                    autoFocus
+                    required
+                    value={googleDisplayNameInput}
+                    onChange={(e) => {
+                      setGoogleDisplayNameInput(e.target.value);
+                      if (googleUsernameError) setGoogleUsernameError("");
+                    }}
+                    placeholder="e.g. Melchi, Alex, Maya..."
+                    className="w-full px-3.5 py-2.5 bg-stone-950 border border-zinc-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl text-white text-sm placeholder:text-zinc-600 outline-none transition-all"
+                  />
+                </div>
+
+                {/* Sovereign Username */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-zinc-300">
+                    Sovereign Username (Used for Sign-In)
+                  </label>
+                  <input
+                    type="text"
+                    required
                     value={googleUsernameInput}
                     onChange={(e) => {
                       setGoogleUsernameInput(e.target.value);
                       if (googleUsernameError) setGoogleUsernameError("");
                     }}
-                    placeholder="Enter your username (e.g. Alex, Orion)..."
+                    placeholder="Enter username (e.g. melchi, orion)..."
                     maxLength={40}
-                    className="w-full px-4 py-3 bg-stone-950 border border-zinc-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl text-white text-sm placeholder:text-zinc-600 outline-none transition-all"
+                    className="w-full px-3.5 py-2.5 bg-stone-950 border border-zinc-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl text-white text-sm placeholder:text-zinc-600 outline-none transition-all font-mono"
                   />
-                  {googleUsernameError ? (
-                    <p className="text-xs text-rose-400 mt-1">{googleUsernameError}</p>
-                  ) : (
-                    <p className="text-[11px] text-zinc-500">
-                      Minimum 2 characters. Only this name will be displayed in your workspace.
-                    </p>
-                  )}
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                {/* Mandatory Password */}
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-semibold text-zinc-300">
+                      Password <span className="text-amber-400">*</span>
+                    </label>
+                    <span className="text-[10px] text-amber-400/90 font-mono">Mandatory (min 4 chars)</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showGooglePassword ? "text" : "password"}
+                      required
+                      value={googlePasswordInput}
+                      onChange={(e) => {
+                        setGooglePasswordInput(e.target.value);
+                        if (googleUsernameError) setGoogleUsernameError("");
+                      }}
+                      placeholder="Enter a secure password..."
+                      className="w-full px-3.5 py-2.5 pr-10 bg-stone-950 border border-zinc-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl text-white text-sm placeholder:text-zinc-600 outline-none transition-all font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGooglePassword(!showGooglePassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white cursor-pointer"
+                    >
+                      {showGooglePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-zinc-300">
+                    Confirm Password <span className="text-amber-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showGoogleConfirmPassword ? "text" : "password"}
+                      required
+                      value={googleConfirmPasswordInput}
+                      onChange={(e) => {
+                        setGoogleConfirmPasswordInput(e.target.value);
+                        if (googleUsernameError) setGoogleUsernameError("");
+                      }}
+                      placeholder="Re-enter your password..."
+                      className="w-full px-3.5 py-2.5 pr-10 bg-stone-950 border border-zinc-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-xl text-white text-sm placeholder:text-zinc-600 outline-none transition-all font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGoogleConfirmPassword(!showGoogleConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white cursor-pointer"
+                    >
+                      {showGoogleConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {googleUsernameError && (
+                  <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl">
+                    {googleUsernameError}
+                  </p>
+                )}
+
+                <div className="flex gap-3 pt-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -717,23 +772,23 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
                       setIsPromptingGoogleUsername(false);
                       setGoogleAuthPayload(null);
                     }}
-                    className="flex-1 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs font-semibold transition-all"
+                    className="flex-1 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs font-semibold transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmittingGoogleUsername}
-                    className="flex-2 px-5 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50"
+                    className="flex-2 px-5 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
                   >
                     {isSubmittingGoogleUsername ? (
                       <>
                         <div className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                        <span>Saving...</span>
+                        <span>Setting Credentials...</span>
                       </>
                     ) : (
                       <>
-                        <span>Confirm & Enter Vita</span>
+                        <span>Set Password & Enter Vita</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </>
                     )}

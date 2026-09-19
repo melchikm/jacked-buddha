@@ -64,6 +64,10 @@ export default function AiPreferencesOnboardingModal({
     if (typeof window !== "undefined") {
       localStorage.setItem(`vita-user-welcomed-${userKey}`, "true");
       localStorage.setItem("vita-user-welcomed-global", "true");
+      localStorage.setItem(`vita-apps-configured-${userKey}`, "true");
+      localStorage.setItem("vita-apps-configured-global", "true");
+      localStorage.setItem("vita-apps-selected-global", "true");
+      localStorage.setItem("vita-onboarding-dismissed", "true");
     }
   };
 
@@ -269,7 +273,7 @@ export default function AiPreferencesOnboardingModal({
       setSaveSuccess(true);
       setTimeout(() => {
         if (onClose) onClose();
-      }, 1200);
+      }, 400);
     } catch (err) {
       console.error("Failed saving preferences:", err);
     } finally {
@@ -342,7 +346,10 @@ export default function AiPreferencesOnboardingModal({
             {onClose && (
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  markWelcomeCompleted();
+                  onClose();
+                }}
                 className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
                 title="Close"
               >
@@ -637,33 +644,47 @@ export default function AiPreferencesOnboardingModal({
                 </div>
 
                 {/* Footer Controls */}
-                <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>Back (Age)</span>
-                  </button>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-white/10">
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Back</span>
+                    </button>
 
-                  <div className="text-xs text-zinc-400">
-                    <strong className="text-amber-400">{selectedIds.length}</strong> tools selected
+                    <div className="text-xs text-zinc-400">
+                      <strong className="text-amber-400">{selectedIds.length}</strong> tools selected
+                    </div>
                   </div>
 
-                  <button
-                    type="button"
-                    disabled={selectedIds.length === 0}
-                    onClick={() => {
-                      sound.playTingsha();
-                      setActiveToolIndex(0);
-                      setStep(3);
-                    }}
-                    className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-black font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-amber-500/20 hover:from-amber-300 hover:to-orange-400 transition flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <span>Calibrate Goals & Roadmaps</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button
+                      type="button"
+                      disabled={selectedIds.length === 0 || isSaving}
+                      onClick={() => {
+                        sound.playTingsha();
+                        setActiveToolIndex(0);
+                        setStep(3);
+                      }}
+                      className="px-3.5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <span>Calibrate Goals</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={selectedIds.length === 0 || isSaving}
+                      onClick={handleSaveAndIntegrate}
+                      className="px-5 py-2.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-black font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                    >
+                      <Check className="w-4 h-4 text-black" />
+                      <span>{isSaving ? "Saving..." : "Confirm & Enter Dashboard"}</span>
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}

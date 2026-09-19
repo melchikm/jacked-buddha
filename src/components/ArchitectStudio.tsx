@@ -114,7 +114,7 @@ class CouncilMeetingNotifier extends StateNotifier<AsyncValue<List<CouncilMessag
             "fields": {
               "timestamp": "TIMESTAMP",
               "type": "fitness | nutrition | mba | career | music",
-              "title": "Spider-Man Physique Workout Plan A",
+              "title": "Athletic Hypertrophy Workout Plan A",
               "detail": "Shoulder rehab 4x15, Barbell Squats 100kg"
             }
           }

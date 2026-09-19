@@ -37,7 +37,7 @@ export default function AIVisionUpload({ onAnalyzeComplete, theme, mode }: AIVis
     fitness: {
       placeholder: "Scan physical training logs or form pictures...",
       suggestedPrompts: [
-        { label: "Review Training Log", text: "Extract exercises and sets from this log. Analyze my training volume against Spider-Man physique targets." },
+        { label: "Review Training Log", text: "Extract exercises and sets from this log. Analyze my training volume against athletic physique targets." },
         { label: "Rotator-Cuff Rehab Check", text: "Evaluate this posture/joint alignment. Ensure joint preservation protocols are active." }
       ]
     },

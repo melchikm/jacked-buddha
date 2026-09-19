@@ -52,7 +52,7 @@ export default function LifeSpheresView({ metrics, onUpdateMetrics, theme }: Lif
       coachName: "Body Coach (Buddha Physical)",
       coachTitle: "Elite Physique Sculptor & Biomechanics",
       status: `Weight: ${localMetrics.weight}kg | Body Fat: ${localMetrics.bodyFat}% | Sleep: ${localMetrics.sleep}h | Recovery: ${localMetrics.recovery}%`,
-      mission: "Build Spider-Man physique while strictly preserving shoulder rotator cuff joint integrity.",
+      mission: "Build an athletic, lean physique while strictly preserving shoulder rotator cuff joint integrity.",
       recommendation: "Replace heavy overhead presses with slow eccentric face pulls. Hit 180g protein target daily."
     },
     {

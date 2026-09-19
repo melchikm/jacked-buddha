@@ -163,7 +163,7 @@ export default function TimelineLogs({ logs, onAddLog, onClearLogs }: TimelineLo
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Spider-Man Physique Plan Session, Verbal CAT drill, 128BPM chord progression..."
+                  placeholder="Athletic Hypertrophy Plan Session, Verbal CAT drill, 128BPM chord progression..."
                   className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-xs focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>

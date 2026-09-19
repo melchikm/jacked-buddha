@@ -112,7 +112,7 @@ export const DEFAULT_AI_COUNCIL_OPTIONS: {
     defaultTimeSpan: "6 Months",
     goalSuggestions: [
       "Master core business, technical, or analytical frameworks with 15 hrs/wk study",
-      "Score 730+ on GMAT/Executive exam or complete top-tier credential",
+      "Master core analytical frameworks & complete top-tier credential",
       "Read & thoroughly summarize 2 foundational domain books per month",
       "Deep cognitive comprehension of AI architecture & systems design"
     ],

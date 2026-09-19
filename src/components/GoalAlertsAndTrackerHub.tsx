@@ -258,7 +258,7 @@ export default function GoalAlertsAndTrackerHub({
       },
       {
         id: "lt-physique",
-        title: "Spider-Man 8% Body Fat & 74kg Lean",
+        title: "Athletic 8% Body Fat & 74kg Lean",
         category: "Bio-Alchemy",
         current: metrics.bodyFat ? `${metrics.bodyFat}% BF` : "0% BF Logged",
         target: "8.0% BF",
@@ -552,7 +552,7 @@ export default function GoalAlertsAndTrackerHub({
               Strategic Long-Term Horizons (Live Telemetry)
             </span>
             <span className="text-[11px] font-mono text-sky-400">
-              🏔️ Summit Altitude · GMAT 740+ · Spider-Man Physique · ₹50L
+              🏔️ Summit Altitude · GMAT 740+ · Athletic Physique · ₹50L
             </span>
           </div>
 

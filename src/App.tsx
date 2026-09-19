@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { DBState, UserProfile, COUNCIL_AGENTS, MetricState, HistoryLog, UserLongTermGoals, SelectedAIPreference, Goal } from "./types";
 import { 
   Dumbbell, Compass, Users, Heart, GraduationCap, Briefcase, 
-  TrendingUp, Award, BookOpen, Music, Sparkles, LogOut, ChevronRight, CheckSquare, Calendar, RefreshCw, Smartphone, Cloud, RotateCcw, Bot, CheckCircle2, Circle
+  TrendingUp, Award, BookOpen, Music, Sparkles, LogOut, ChevronRight, CheckSquare, Calendar, RefreshCw, Smartphone, Cloud, RotateCcw, Bot, CheckCircle2, Circle, Key
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import LoginScreen from "./components/LoginScreen";
+import UpdateCredentialsModal from "./components/UpdateCredentialsModal";
 import VitaGoalOnboardingModal from "./components/VitaGoalOnboardingModal";
 import VitaNorthStarBanner from "./components/VitaNorthStarBanner";
 import AiPreferencesOnboardingModal from "./components/AiPreferencesOnboardingModal";
@@ -57,6 +58,7 @@ import FaithDevotionView from "./components/FaithDevotionView";
 import NatureImmersionView from "./components/NatureImmersionView";
 import RealTimeStatusBanner from "./components/RealTimeStatusBanner";
 import SidebarNavigation from "./components/SidebarNavigation";
+import MissionDashboard from "./components/MissionDashboard";
 
 // Initial empty state for metrics in case API fails
 const DEFAULT_METRICS: MetricState = {
@@ -210,6 +212,9 @@ export default function App() {
   // Vita Life Architecture Long-Term Goal Calibration modal
   const [isGoalCalibrationModalOpen, setIsGoalCalibrationModalOpen] = useState<boolean>(false);
 
+  // Sovereign Name & Password Credentials update modal
+  const [isUpdateCredentialsModalOpen, setIsUpdateCredentialsModalOpen] = useState<boolean>(false);
+
   // Personalized AI Council Preferences & Individual Goals Onboarding Modal (for new or resetted users)
   const [isAiPreferencesModalOpen, setIsAiPreferencesModalOpen] = useState<boolean>(false);
   const [isPreferencesNewUser, setIsPreferencesNewUser] = useState<boolean>(false);
@@ -268,7 +273,15 @@ export default function App() {
           zeroTrackers: data.zeroTrackers || [],
           longTermGoals: data.longTermGoals,
           userProfile: data.userProfile,
-          selectedAIs: data.selectedAIs || data.userProfile?.selectedAIs || []
+          selectedAIs: (data.selectedAIs && data.selectedAIs.length > 0)
+            ? data.selectedAIs
+            : (data.userProfile?.selectedAIs && data.userProfile.selectedAIs.length > 0)
+            ? data.userProfile.selectedAIs
+            : (user?.selectedAIs && user.selectedAIs.length > 0)
+            ? user.selectedAIs
+            : (dbState.selectedAIs && dbState.selectedAIs.length > 0)
+            ? dbState.selectedAIs
+            : []
         };
 
         setDbState(serverState);
@@ -281,20 +294,31 @@ export default function App() {
           setUser((prev) => prev ? { ...prev, selectedAIs: serverState.selectedAIs, isOnboarded: true } : prev);
         }
 
-        // If user is brand new and has never been welcomed or configured, prompt onboarding
+        // Only prompt onboarding if user is truly brand-new and has zero configured tools or prior onboarding
         if (!isSilent) {
           const cleanKey = (username || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-          const userAIs = data.selectedAIs || data.userProfile?.selectedAIs;
+          const hasConfiguredTools = (serverState.selectedAIs && serverState.selectedAIs.length > 0) ||
+            (user?.selectedAIs && user.selectedAIs.length > 0) ||
+            (typeof window !== "undefined" && (
+              localStorage.getItem(`vita-apps-configured-${cleanKey}`) === "true" ||
+              localStorage.getItem("vita-apps-configured-global") === "true" ||
+              localStorage.getItem("vita-apps-selected-global") === "true"
+            ));
+
           const hasPriorWelcome = typeof window !== "undefined" && (
             localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
             localStorage.getItem("vita-user-welcomed-global") === "true" ||
+            localStorage.getItem("vita-onboarding-dismissed") === "true" ||
             data.userProfile?.welcomeAcknowledged === true ||
-            data.userProfile?.isOnboarded === true
+            data.userProfile?.isOnboarded === true ||
+            hasConfiguredTools
           );
-          const hasConfiguredTools = Array.isArray(userAIs) && userAIs.length > 0;
+
           if (!hasPriorWelcome && !hasConfiguredTools) {
             setIsPreferencesNewUser(true);
             setIsAiPreferencesModalOpen(true);
+          } else {
+            setIsAiPreferencesModalOpen(false);
           }
         }
       }
@@ -404,6 +428,11 @@ export default function App() {
       setTimeout(() => {
         setIsAiPreferencesModalOpen(true);
       }, 350);
+    } else {
+      // Welcome user and immediately pop up AI Day Scheduler
+      setTimeout(() => {
+        setIsDailyPlanningModalOpen(true);
+      }, 450);
     }
 
     // Flush any pending offline queue items with authenticated user credentials
@@ -423,6 +452,10 @@ export default function App() {
     if (typeof window !== "undefined") {
       localStorage.setItem(`vita-user-welcomed-${cleanKey}`, "true");
       localStorage.setItem("vita-user-welcomed-global", "true");
+      localStorage.setItem("vita-apps-selected-global", "true");
+      localStorage.setItem("vita-apps-configured-global", "true");
+      localStorage.setItem(`vita-apps-configured-${cleanKey}`, "true");
+      localStorage.setItem("vita-onboarding-dismissed", "true");
     }
 
     // Optimistically update local user state
@@ -474,8 +507,14 @@ export default function App() {
       console.error("Error saving AI preferences:", err);
     }
 
+    setIsPreferencesNewUser(false);
     setIsAiPreferencesModalOpen(false);
     sound.playSingingBowl();
+
+    // After picking apps, immediately pop up AI Day Scheduler
+    setTimeout(() => {
+      setIsDailyPlanningModalOpen(true);
+    }, 450);
   };
 
   const handleLogout = () => {
@@ -875,22 +914,39 @@ export default function App() {
 
   if (layoutMode === "ios") {
     return (
-      <IosDeviceShell
-        user={user}
-        dbState={dbState}
-        theme={theme}
-        soundEnabled={soundEnabled}
-        saveStatus={saveStatus}
-        lastSyncedAt={lastSyncedAt}
-        onToggleTheme={handleToggleTheme}
-        onToggleSound={handleToggleSound}
-        onLogout={handleLogout}
-        onUpdateMetrics={updateMetricsState}
-        onAddHistoryLog={addNewHistoryLog}
-        onUpdateState={handleUpdateState}
-        onToggleLayoutMode={handleToggleLayoutMode}
-        onResetAll={handleResetEverythingToZero}
-      />
+      <>
+        <IosDeviceShell
+          user={user}
+          dbState={dbState}
+          theme={theme}
+          soundEnabled={soundEnabled}
+          saveStatus={saveStatus}
+          lastSyncedAt={lastSyncedAt}
+          onToggleTheme={handleToggleTheme}
+          onToggleSound={handleToggleSound}
+          onLogout={handleLogout}
+          onUpdateMetrics={updateMetricsState}
+          onAddHistoryLog={addNewHistoryLog}
+          onUpdateState={handleUpdateState}
+          onToggleLayoutMode={handleToggleLayoutMode}
+          onResetAll={handleResetEverythingToZero}
+          onOpenUpdateCredentials={() => setIsUpdateCredentialsModalOpen(true)}
+        />
+
+        {/* Credentials & Password Management Modal (iOS mode) */}
+        <UpdateCredentialsModal
+          isOpen={isUpdateCredentialsModalOpen}
+          onClose={() => setIsUpdateCredentialsModalOpen(false)}
+          user={user}
+          onUpdateUser={(updated) => {
+            setUser(updated);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("zen-user-session", JSON.stringify(updated));
+            }
+          }}
+          theme={theme}
+        />
+      </>
     );
   }
 
@@ -982,6 +1038,26 @@ export default function App() {
             <div className={`text-xs font-mono ${theme === "bright" ? "text-stone-600" : "text-slate-400"}`}>
               {user?.email || `${(user?.username || "operator").toLowerCase()}@vita.io`}
             </div>
+
+            {/* Sovereign Name & Password Update Button */}
+            <button
+              onClick={() => {
+                sound.playSubtleClick();
+                setIsUpdateCredentialsModalOpen(true);
+              }}
+              className={`w-full py-1.5 px-2.5 rounded-xl border text-[11px] font-semibold flex items-center justify-between transition cursor-pointer group ${
+                theme === "bright"
+                  ? "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-900"
+                  : "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-300"
+              }`}
+              title="Update Name, Sovereign Username, and Mandatory Password"
+            >
+              <div className="flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="truncate">Update Name & Password</span>
+              </div>
+              <span className="text-[10px] font-mono opacity-70 group-hover:opacity-100">&rarr;</span>
+            </button>
 
             {/* Display Active AIs for user */}
             {((user?.selectedAIs && user.selectedAIs.length > 0) || (dbState.selectedAIs && dbState.selectedAIs.length > 0)) && (
@@ -1085,7 +1161,7 @@ export default function App() {
               <h2 className={`text-3xl font-display font-extrabold tracking-tight leading-none transition-colors duration-500 ${
                 theme === "bright" ? "text-stone-900" : "text-white"
               }`}>
-                {liveTime.greeting}, {user?.username || user?.name || "Explorer"}.
+                Welcome, {user?.name || user?.username || "Explorer"}.
               </h2>
               <span className={`px-2.5 py-1 rounded-xl text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 border shadow-sm ${liveTime.greetingData.badgeBg} ${liveTime.greetingData.badgeBorder} ${liveTime.greetingData.badgeText}`}>
                 <span>{liveTime.greetingData.emoji}</span>
@@ -1105,10 +1181,8 @@ export default function App() {
                 </>
               ) : liveTime.isAfternoon ? (
                 <>
-                  <strong className="text-sky-400 font-display font-bold">HIGH VELOCITY EXECUTION.</strong>{" "}
-                  {(user?.selectedAIs || dbState.selectedAIs || []).some(a => a.aiId === "mba" || a.aiId === "cognitive_mba")
-                    ? "GMAT verbal mastery & physical progression."
-                    : "Deep cognitive focus & sovereign daily execution."}
+                  <strong className="text-sky-400 font-display font-bold">FOCUSED EXECUTION.</strong>{" "}
+                  Execute your schedule with clear focus and purposeful momentum.
                 </>
               ) : (
                 <>
@@ -1207,6 +1281,24 @@ export default function App() {
                   </div>
                 )}
 
+                {/* Update Password & Profile Button */}
+                <button
+                  onClick={() => {
+                    sound.playSubtleClick();
+                    setIsUpdateCredentialsModalOpen(true);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider font-bold border ${
+                    theme === "bright"
+                      ? "bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100"
+                      : "bg-white/5 text-stone-300 border-white/10 hover:bg-white/10"
+                  }`}
+                  title="Update your Name, Sovereign Username, and Mandatory Password"
+                >
+                  <Key className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden lg:inline">Update Password</span>
+                  <span className="lg:hidden">Password</span>
+                </button>
+
                 {/* Plan Today Morning Ritual Button */}
                 <button
                   onClick={() => {
@@ -1283,7 +1375,7 @@ export default function App() {
                     }`}>
                       <span className={`text-[10px] uppercase tracking-widest font-mono block ${
                         theme === "bright" ? "text-stone-500" : "text-slate-500"
-                      }`}>MBA / GMAT SPRINT</span>
+                      }`}>COGNITIVE SPRINT</span>
                       <span className="text-sm font-display font-bold text-sky-400 flex items-center gap-1 justify-end">
                         🎯 {liveGmatTotal.toFixed(liveGmatTotal % 1 === 0 ? 0 : 1)} Hours Logged
                       </span>
@@ -1330,836 +1422,16 @@ export default function App() {
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-            {/* 1. MISSION CONTROL BENTO DASHBOARD */}
+            {/* 1. MISSION DASHBOARD */}
             {activeView === "mission_control" && (
-              <div className="space-y-8">
-                
-                {/* STRATEGIC GOAL ANALYSIS & LIFE PILLARS WIDGET */}
-                <GoalAnalysisWidget
-                  dbState={dbState}
-                  user={user}
-                  theme={theme}
-                  onNavigateToView={(v) => { sound.playSingingBowl(); setActiveView(v as any); }}
-                  onOpenCalibration={() => setIsGoalCalibrationModalOpen(true)}
-                />
-
-                {/* VITA NORTH STAR & LONG-TERM LIFE BLUEPRINT */}
-                <VitaNorthStarBanner
-                  goals={dbState.longTermGoals}
-                  onOpenCalibration={() => setIsGoalCalibrationModalOpen(true)}
-                  userName={user?.name || user?.username}
-                />
-
-                {/* AI COUNCIL & INDIVIDUAL GOALS TRACKER (Tracks Daily Tasks, Weekly Targets, & Mountain of Life Ascent) */}
-                <AiCouncilGoalTracker
-                  userName={user?.name || user?.username || "Explorer"}
-                  selectedAIs={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
-                  dbState={dbState}
-                  theme={theme}
-                  onOpenAiPreferencesModal={() => setIsAiPreferencesModalOpen(true)}
-                  onUpdateState={handleUpdateState}
-                  onNavigateToView={(v) => { sound.playSingingBowl(); setActiveView(v); }}
-                />
-
-                {/* DAILY SOVEREIGN ROUTINE VISUALIZATION (Maps Tasks to Deep Work, Physical Vessel, Cognitive Sprint, etc.) */}
-                <DailySovereignRoutine
-                  dbState={dbState}
-                  userName={user?.username || user?.name || "Explorer"}
-                  selectedAIs={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
-                  onUpdateState={handleUpdateState}
-                  onNavigateToView={(v) => { sound.playSingingBowl(); setActiveView(v); }}
-                  onOpenDailyPlan={() => { sound.playSingingBowl(); setIsDailyPlanningModalOpen(true); }}
-                  theme={theme}
-                />
-
-                {/* LIVE GOAL ALERTS & STRATEGIC HORIZONS HUB */}
-                <GoalAlertsAndTrackerHub
-                  dbState={dbState}
-                  userName={user?.name || user?.username || "Explorer"}
-                  selectedAIs={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
-                  onUpdateState={handleUpdateState}
-                  onUpdateMetrics={updateMetricsState}
-                  onNavigateToView={(v) => { sound.playSingingBowl(); setActiveView(v); }}
-                  onOpenDailyPlan={() => { sound.playSingingBowl(); setIsDailyPlanningModalOpen(true); }}
-                  theme={theme}
-                />
-
-                {/* REFLECTIVE PROMPT WIDGET */}
-                <ReflectivePrompt 
-                  dbState={dbState} 
-                  onUpdateState={handleUpdateState} 
-                  theme={theme} 
-                />
-
-                {/* Real-Time Live Status Banner (Bio-Recovery completely removed, real-time live data & trackers enabled) */}
-                <RealTimeStatusBanner
-                  metrics={dbState.metrics}
-                  dbState={dbState}
-                  selectedAIs={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
-                  onUpdateState={handleUpdateState}
-                  theme={theme}
-                  onNavigateView={(v) => setActiveView(v)}
-                />
-
-                {/* ZEN CORE DAILY ALIGNMENT PLAN */}
-                <div className={`glass-panel rounded-3xl p-6 border transition-all duration-500 ${
-                  theme === "bright" ? "border-amber-500/20 bg-gradient-to-tr from-amber-500/5 to-orange-500/5" : "border-indigo-500/10 bg-gradient-to-tr from-indigo-500/5 to-purple-500/5"
-                }`}>
-                  <div className={`flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 border-b pb-5 ${
-                    theme === "bright" ? "border-stone-200" : "border-white/5"
-                  }`}>
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
-                        <span className="text-[10px] uppercase tracking-widest text-indigo-400 font-mono block">Active Strategic Directive</span>
-                      </div>
-                      <h3 className={`text-lg font-display font-extrabold tracking-tight ${theme === "bright" ? "text-stone-900" : "text-white"}`}>
-                        {dbState.todayPlan?.focus || (
-                          (user?.selectedAIs?.some(a => a.aiId === "mba" || a.aiId === "cognitive_mba") || dbState.selectedAIs?.some(a => a.aiId === "mba" || a.aiId === "cognitive_mba"))
-                            ? "Sustain GMAT Verbal Focus, conduct shoulder active-rehab loops, and track protein macros."
-                            : "Execute priority deep work sprints, maintain sovereign physical discipline, and preserve inner stillness."
-                        )}
-                      </h3>
-                    </div>
-
-                    {/* Balance Score Ring */}
-                    <div className={`flex items-center gap-3 border px-4 py-3 rounded-2xl shrink-0 ${
-                      theme === "bright" ? "bg-stone-50 border-stone-200" : "bg-white/2 border-white/5"
-                    }`}>
-                      <div className="relative flex items-center justify-center w-12 h-12">
-                        <svg className="w-12 h-12 transform -rotate-90">
-                          <circle cx="24" cy="24" r="18" className={theme === "bright" ? "text-stone-200" : "text-white/5"} strokeWidth="4" stroke="currentColor" fill="transparent" />
-                          <circle cx="24" cy="24" r="18" className="text-indigo-400" strokeWidth="4" strokeDasharray={`${(dbState.todayPlan?.balanceScore || 84) * 1.13}, 113`} stroke="currentColor" fill="transparent" strokeLinecap="round" />
-                        </svg>
-                        <span className={`absolute text-xs font-mono font-bold ${theme === "bright" ? "text-stone-800" : "text-white"}`}>{dbState.todayPlan?.balanceScore || 84}</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] uppercase tracking-wider text-slate-500 font-mono block">ZEN ALIGNMENT INDEX</span>
-                        <span className={`text-xs font-sans font-bold ${theme === "bright" ? "text-stone-700" : "text-slate-300"}`}>Equilibrium Status</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Plan Columns */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-5">
-                    
-                    {/* WINS / COMPLETED */}
-                    <div className="space-y-3">
-                      <h4 className="text-[10px] uppercase tracking-wider text-emerald-400 font-mono flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Dynamic Micro-Wins
-                      </h4>
-                      <ul className="space-y-2 text-xs text-slate-400">
-                        {(dbState.todayPlan?.wins || [
-                          "Logged active meditation consistency.",
-                          (user?.selectedAIs?.some(a => a.aiId === "mba" || a.aiId === "cognitive_mba") || dbState.selectedAIs?.some(a => a.aiId === "mba" || a.aiId === "cognitive_mba"))
-                            ? "48 total hours logged of high-intensity GMAT prep."
-                            : "Advanced primary sovereign goals and habits."
-                        ]).map((win, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="text-emerald-400 font-bold">✓</span>
-                            <span className={theme === "bright" ? "text-stone-600" : "text-slate-300"}>{win}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* RISKS */}
-                    <div className="space-y-3">
-                      <h4 className="text-[10px] uppercase tracking-wider text-amber-500 font-mono flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Failure Mode Bottlenecks
-                      </h4>
-                      <ul className="space-y-2 text-xs text-slate-400">
-                        {(dbState.todayPlan?.risks || [
-                          (user?.selectedAIs?.some(a => a.aiId === "mba" || a.aiId === "cognitive_mba") || dbState.selectedAIs?.some(a => a.aiId === "mba" || a.aiId === "cognitive_mba"))
-                            ? "Under-sleeping risks GMAT retention capacity. Guard midnight window."
-                            : "Under-sleeping degrades neurological focus. Guard midnight window.",
-                          "Avoid multitasking across distinct operational domains."
-                        ]).map((risk, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="text-amber-500 font-bold">⚠</span>
-                            <span className={theme === "bright" ? "text-stone-600" : "text-slate-300"}>{risk}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* SUGGESTIONS */}
-                    <div className="space-y-3">
-                      <h4 className="text-[10px] uppercase tracking-wider text-indigo-400 font-mono flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" /> Sovereign Interventions
-                      </h4>
-                      <ul className="space-y-2 text-xs text-slate-400">
-                        {(dbState.todayPlan?.suggestions || [
-                          "Spend ₹0 today to lock in savings velocity.",
-                          "Substitute heavy overhead press drills with cable rehab pulls."
-                        ]).map((sug, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="text-indigo-400 font-bold">⚡</span>
-                            <span className={theme === "bright" ? "text-stone-600" : "text-slate-300"}>{sug}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                  </div>
-                </div>
-
-                {/* Challenges, Goals & Daily Habits block */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  
-                  {/* High active Goals */}
-                  <div className="glass-panel rounded-3xl p-5 space-y-4">
-                    {(() => {
-                      const activeAIs = (user?.selectedAIs && user.selectedAIs.length > 0)
-                        ? user.selectedAIs
-                        : (dbState.selectedAIs || []);
-                      const activeAiIdSet = new Set(activeAIs.map(a => a.aiId));
-                      const hasMbaApp = activeAiIdSet.has("mba") || activeAiIdSet.has("cognitive_mba");
-
-                      const rawGoals = (dbState.goals && dbState.goals.length > 0)
-                        ? dbState.goals
-                        : [
-                            { id: "g-health", module: "fitness", title: dbState.longTermGoals?.healthGoal || "Build peak physical vitality, strength, and longevity", status: "In Progress" as const, progress: 30 },
-                            { id: "g-career", module: "career", title: dbState.longTermGoals?.careerGoal || "Scale career impact, leadership, and financial sovereignty", status: "In Progress" as const, progress: 40 },
-                            { id: "g-skills", module: "skills", title: dbState.longTermGoals?.skillsGoal || "Deep cognitive mastery and deliberate high-leverage skill acquisition", status: "In Progress" as const, progress: 20 },
-                            { id: "g-lifestyle", module: "mind", title: dbState.longTermGoals?.lifestyleGoal || "Peace of mind, sovereign freedom, and work-life harmony", status: "In Progress" as const, progress: 50 },
-                          ];
-
-                      // Filter out goals for apps that are not selected (e.g. MBA/GMAT if MBA app is not selected)
-                      const activeGoalsList = rawGoals.filter(g => {
-                        const isMba = g.module === "mba" || g.module === "cognitive_mba" || g.id.includes("mba") || g.title.toLowerCase().includes("gmat") || g.title.includes("Sage");
-                        if (isMba && !hasMbaApp) return false;
-
-                        if (g.id.startsWith("goal-ai-")) {
-                          const parts = g.id.split("-");
-                          const appKey = parts[3];
-                          if (appKey && !activeAiIdSet.has(appKey)) return false;
-                        }
-                        return true;
-                      });
-
-                      const averageGoalProgress = Math.round(
-                        activeGoalsList.reduce((acc, g) => acc + (g.progress ?? (g.status === "Completed" ? 100 : 0)), 0) /
-                          (activeGoalsList.length || 1)
-                      );
-
-                      return (
-                        <>
-                          <div className={`flex justify-between items-center border-b pb-2 ${theme === "bright" ? "border-stone-200" : "border-white/5"}`}>
-                            <div className="flex items-center gap-2">
-                              <h3 className={`text-xs uppercase tracking-widest font-mono ${theme === "bright" ? "text-stone-500" : "text-slate-400"}`}>Active Future Objectives</h3>
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                                {averageGoalProgress}% Avg
-                              </span>
-                            </div>
-                            <Award className="w-4.5 h-4.5 text-amber-400" />
-                          </div>
-
-                          <div className="space-y-3">
-                            {activeGoalsList.map((g) => {
-                              const currentPct = Math.min(100, Math.max(0, g.progress ?? (g.status === "Completed" ? 100 : 0)));
-                              const isCompleted = currentPct >= 100;
-
-                              const lowerMod = (g.module || "").toLowerCase();
-                              let moduleIcon = "🎯";
-                              let moduleLabel = "Life Goal";
-                              let gradientColors = "from-amber-500 to-yellow-400";
-                              let badgeBorderColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-
-                              const bracketMatch = g.title.match(/^\[(.*?)(\s+App)?\]/);
-                              const parsedAppName = bracketMatch ? bracketMatch[1] : null;
-
-                              if (lowerMod === "fitness" || lowerMod === "health" || lowerMod === "body" || parsedAppName?.includes("Titan")) {
-                                moduleIcon = "🏋️";
-                                moduleLabel = parsedAppName ? `${parsedAppName} App` : "Physical Vessel";
-                                gradientColors = "from-emerald-500 to-teal-400";
-                                badgeBorderColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-                              } else if (lowerMod === "nutrition" || parsedAppName?.includes("Nourish")) {
-                                moduleIcon = "🥗";
-                                moduleLabel = parsedAppName ? `${parsedAppName} App` : "Metabolic Fuel";
-                                gradientColors = "from-emerald-400 to-teal-500";
-                                badgeBorderColor = "bg-emerald-500/10 text-emerald-300 border-emerald-500/20";
-                              } else if (lowerMod === "career" || lowerMod === "empire" || parsedAppName?.includes("Vanguard")) {
-                                moduleIcon = "💼";
-                                moduleLabel = parsedAppName ? `${parsedAppName} App` : "Empire & Impact";
-                                gradientColors = "from-amber-500 to-orange-400";
-                                badgeBorderColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-                              } else if (lowerMod === "skills" || lowerMod === "mba" || lowerMod === "learning" || parsedAppName?.includes("Sage")) {
-                                moduleIcon = "🎓";
-                                moduleLabel = parsedAppName ? `${parsedAppName} App` : "Cognitive Mastery";
-                                gradientColors = "from-indigo-500 to-sky-400";
-                                badgeBorderColor = "bg-indigo-500/10 text-indigo-300 border-indigo-500/20";
-                              } else if (lowerMod === "finance" || lowerMod === "wealth" || parsedAppName?.includes("Midās") || parsedAppName?.includes("Midas")) {
-                                moduleIcon = "📈";
-                                moduleLabel = parsedAppName ? `${parsedAppName} App` : "Sovereign Wealth";
-                                gradientColors = "from-green-500 to-emerald-400";
-                                badgeBorderColor = "bg-green-500/10 text-green-300 border-green-500/20";
-                              } else if (lowerMod === "music" || lowerMod === "creative" || parsedAppName?.includes("Orpheus")) {
-                                moduleIcon = "🎹";
-                                moduleLabel = parsedAppName ? `${parsedAppName} App` : "Creative Sonic";
-                                gradientColors = "from-fuchsia-500 to-pink-400";
-                                badgeBorderColor = "bg-fuchsia-500/10 text-fuchsia-300 border-fuchsia-500/20";
-                              } else if (lowerMod === "cinema" || lowerMod === "film" || parsedAppName?.includes("Cinema")) {
-                                moduleIcon = "🎬";
-                                moduleLabel = parsedAppName ? `${parsedAppName} App` : "Visual Cinema";
-                                gradientColors = "from-rose-500 to-red-400";
-                                badgeBorderColor = "bg-rose-500/10 text-rose-300 border-rose-500/20";
-                              } else if (lowerMod === "recovery" || lowerMod === "sleep" || parsedAppName?.includes("Kintsugi")) {
-                                moduleIcon = "⚡";
-                                moduleLabel = parsedAppName ? `${parsedAppName} App` : "Nervous Recovery";
-                                gradientColors = "from-purple-500 to-indigo-400";
-                                badgeBorderColor = "bg-purple-500/10 text-purple-300 border-purple-500/20";
-                              } else if (lowerMod === "faith" || lowerMod === "devotion" || parsedAppName?.includes("Sanctuary")) {
-                                moduleIcon = "🕊️";
-                                moduleLabel = parsedAppName ? `${parsedAppName} App` : "Sacred Sanctuary";
-                                gradientColors = "from-sky-500 to-indigo-400";
-                                badgeBorderColor = "bg-sky-500/10 text-sky-300 border-sky-500/20";
-                              } else if (lowerMod === "nature" || parsedAppName?.includes("Gaia")) {
-                                moduleIcon = "🌿";
-                                moduleLabel = parsedAppName ? `${parsedAppName} App` : "Alpine Nature";
-                                gradientColors = "from-emerald-600 to-green-400";
-                                badgeBorderColor = "bg-emerald-600/10 text-emerald-300 border-emerald-600/20";
-                              } else if (lowerMod === "mind" || lowerMod === "lifestyle") {
-                                moduleIcon = "🕊️";
-                                moduleLabel = "Stillness & Freedom";
-                                gradientColors = "from-teal-400 to-cyan-400";
-                                badgeBorderColor = "bg-teal-500/10 text-teal-300 border-teal-500/20";
-                              }
-
-                              return (
-                                <div
-                                  key={g.id}
-                                  id={`goal-objective-${g.id}`}
-                                  className={`p-3.5 border rounded-2xl transition-all space-y-2.5 ${
-                                    isCompleted
-                                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
-                                      : theme === "bright"
-                                      ? "bg-stone-50 border-stone-200/90 shadow-sm hover:border-amber-500/30"
-                                      : "bg-white/[0.02] border-white/5 hover:border-white/15"
-                                  }`}
-                                >
-                                  {/* Title and Module tag row */}
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="flex items-start gap-2.5 min-w-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleToggleGoalCompleted(g.id)}
-                                        className="shrink-0 mt-0.5 cursor-pointer text-stone-400 hover:text-amber-400 transition-colors"
-                                        title={isCompleted ? "Mark in progress" : "Mark completed"}
-                                      >
-                                        {isCompleted ? (
-                                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                                        ) : (
-                                          <Circle className="w-4 h-4 text-stone-400 hover:text-amber-400" />
-                                        )}
-                                      </button>
-                                      <span className="text-base select-none mt-0 shrink-0">{moduleIcon}</span>
-                                      <div>
-                                        <span className={`text-xs font-semibold leading-tight line-clamp-2 ${
-                                          isCompleted ? "line-through opacity-80 text-emerald-300" : theme === "bright" ? "text-stone-800" : "text-white"
-                                        }`}>
-                                          {g.title}
-                                        </span>
-                                        <span className={`text-[9px] font-mono uppercase block mt-0.5 tracking-wider ${
-                                          theme === "bright" ? "text-stone-500" : "text-slate-400"
-                                        }`}>
-                                          {moduleLabel}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    <span
-                                      className={`text-[10px] font-mono font-medium uppercase px-2 py-0.5 rounded-md border shrink-0 ${
-                                        isCompleted
-                                          ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                                          : badgeBorderColor
-                                      }`}
-                                    >
-                                      {isCompleted ? "✓ 100%" : `${currentPct}%`}
-                                    </span>
-                                  </div>
-
-                                  {/* Progress bar and interactive tap area */}
-                                  <div className="space-y-1.5">
-                                    <div className="flex items-center justify-between text-[10px] font-mono">
-                                      <span className={`flex items-center gap-1.5 ${
-                                        theme === "bright" ? "text-stone-600" : "text-slate-400"
-                                      }`}>
-                                        <span className="font-semibold">{currentPct}% Complete</span>
-                                        <span className="opacity-60 text-[9px]">
-                                          {isCompleted ? "• Tap to restart" : "• Tap bar to +10%"}
-                                        </span>
-                                      </span>
-
-                                      <div className="flex items-center gap-1">
-                                        {currentPct > 0 && (
-                                          <button
-                                            type="button"
-                                            id={`btn-dec-goal-${g.id}`}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleIncrementGoalProgress(g.id, -10);
-                                            }}
-                                            className={`px-1.5 py-0.5 rounded text-[9px] font-mono border transition-all cursor-pointer ${
-                                              theme === "bright"
-                                                ? "bg-stone-100 hover:bg-stone-200 border-stone-300 text-stone-600"
-                                                : "bg-white/5 hover:bg-white/10 border-white/10 text-slate-400 hover:text-white"
-                                            }`}
-                                            title="Decrease 10%"
-                                          >
-                                            -10%
-                                          </button>
-                                        )}
-                                        <button
-                                          type="button"
-                                          id={`btn-inc-goal-${g.id}`}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleIncrementGoalProgress(g.id, 10);
-                                          }}
-                                          className={`px-2 py-0.5 rounded text-[9px] font-mono font-semibold border transition-all cursor-pointer flex items-center gap-1 ${
-                                            isCompleted
-                                              ? theme === "bright"
-                                                ? "bg-stone-100 text-stone-600 border-stone-300 hover:bg-stone-200"
-                                                : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"
-                                              : theme === "bright"
-                                                ? "bg-amber-500/10 text-amber-700 border-amber-500/30 hover:bg-amber-500/20 active:scale-95"
-                                                : "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 active:scale-95"
-                                          }`}
-                                          title="Tap to increment percentage completion by 10%"
-                                        >
-                                          <span>+10%</span>
-                                        </button>
-                                      </div>
-                                    </div>
-
-                                    {/* Clickable Visual Progress Bar */}
-                                    <button
-                                      type="button"
-                                      id={`progress-bar-track-${g.id}`}
-                                      onClick={() => handleIncrementGoalProgress(g.id, 10)}
-                                      className={`w-full group h-3 rounded-full overflow-hidden p-0 border text-left relative cursor-pointer transition-all focus:outline-none focus:ring-1 focus:ring-amber-400/50 ${
-                                        theme === "bright"
-                                          ? "bg-stone-200/80 border-stone-300/80 hover:border-amber-500/50"
-                                          : "bg-white/5 border-white/5 hover:border-white/20"
-                                      }`}
-                                      title="Tap bar to increment percentage by 10%"
-                                    >
-                                      <div
-                                        className={`h-full rounded-full transition-all duration-300 ease-out bg-gradient-to-r ${gradientColors} ${
-                                          isCompleted ? "shadow-[0_0_12px_rgba(16,185,129,0.5)]" : "group-hover:brightness-110"
-                                        }`}
-                                        style={{ width: `${Math.max(currentPct > 0 ? 3 : 0, currentPct)}%` }}
-                                      />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Active Challenges */}
-                  <div className="glass-panel rounded-3xl p-5 space-y-4">
-                    <div className={`flex justify-between items-center border-b pb-2 ${theme === "bright" ? "border-stone-200" : "border-white/5"}`}>
-                      <h3 className={`text-xs uppercase tracking-widest font-mono ${theme === "bright" ? "text-stone-500" : "text-slate-400"}`}>Active Habits & Challenges</h3>
-                      <CheckSquare className="w-4.5 h-4.5 text-emerald-400" />
-                    </div>
-                    <div className="space-y-3">
-                      {dbState.challenges.map((c) => (
-                        <div key={c.id} className="space-y-1">
-                          <div className="flex justify-between text-xs font-mono">
-                            <span className={`font-medium ${theme === "bright" ? "text-stone-800" : "text-white"}`}>{c.title}</span>
-                            <span className="text-slate-400">{c.progress}/{c.total} Logged</span>
-                          </div>
-                          <div className={`w-full h-2 rounded-full overflow-hidden ${theme === "bright" ? "bg-stone-100" : "bg-white/5"}`}>
-                            <div 
-                              className="bg-gradient-to-r from-emerald-400 to-teal-500 h-full rounded-full transition-all duration-500" 
-                              style={{ width: `${(c.progress / c.total) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Daily Goal Summary Widget */}
-                  <DailyGoalSummaryWidget 
-                    dbState={dbState} 
-                    onUpdateState={handleUpdateState} 
-                    theme={theme} 
-                    onNavigateToView={setActiveView}
-                  />
-
-                  {/* Interactive Habits Tracker Widget */}
-                  <HabitTracker 
-                    dbState={dbState} 
-                    onUpdateState={handleUpdateState} 
-                    theme={theme} 
-                  />
-
-                 </div>
-
-                {/* WEEKLY TRAJECTORY ANALYSIS SECTION */}
-                {(() => {
-                  // Reference date as July 19, 2026 to align with mock timeline
-                  const referenceDate = new Date("2026-07-19T12:00:00");
-                  const daysList = [];
-                  for (let i = 6; i >= 0; i--) {
-                    const d = new Date(referenceDate);
-                    d.setDate(referenceDate.getDate() - i);
-                    const yyyy = d.getFullYear();
-                    const mm = String(d.getMonth() + 1).padStart(2, '0');
-                    const dd = String(d.getDate()).padStart(2, '0');
-                    daysList.push(`${yyyy}-${mm}-${dd}`);
-                  }
-
-                  const trajDays = daysList.map(dayStr => {
-                    const logsForDay = (dbState.historyLogs || []).filter(log => log.date === dayStr);
-                    return {
-                      dateStr: dayStr,
-                      dayName: new Date(dayStr + "T12:00:00").toLocaleDateString('en-US', { weekday: 'short' }),
-                      shortDate: new Date(dayStr + "T12:00:00").toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }),
-                      logs: logsForDay,
-                      count: logsForDay.length,
-                      active: logsForDay.length > 0
-                    };
-                  });
-
-                  // Calculate category completion rates (out of 7 days)
-                  const userSelectedAIs = (user?.selectedAIs && user.selectedAIs.length > 0) ? user.selectedAIs : (dbState.selectedAIs || []);
-                  const hasMbaSelected = userSelectedAIs.some(a => a.aiId === "mba" || a.aiId === "cognitive_mba");
-
-                  const trackedCategories = [
-                    { key: "fitness", name: "Fitness & Vessel", icon: "💪" },
-                    { key: "nutrition", name: "Nutrition Macros", icon: "🥗" },
-                    { key: "mind", name: "Mindfulness & Zen", icon: "🧘" },
-                    ...(hasMbaSelected ? [{ key: "mba", name: "GMAT / MBA Study", icon: "🎓" }] : []),
-                    { key: "finance", name: "Wealth Reserve", icon: "📈" },
-                    { key: "reading", name: "Reading Scholar", icon: "📚" },
-                    { key: "music", name: "Music Synthesis", icon: "🎹" }
-                  ];
-
-                  const categoryStats = trackedCategories.map(cat => {
-                    const daysLogged = daysList.filter(dayStr => {
-                      return (dbState.historyLogs || []).some(log => log.date === dayStr && log.type === cat.key);
-                    }).length;
-                    const rate = Math.round((daysLogged / 7) * 100);
-                    return { ...cat, daysLogged, rate };
-                  });
-
-                  const activeDaysCount = trajDays.filter(d => d.active).length;
-                  const consistencyScore = Math.round((activeDaysCount / 7) * 100);
-
-                  const activePersonName = user?.username || user?.name || "Explorer";
-                  // Buddha encouragement quotes
-                  let quote = hasMbaSelected
-                    ? `Let go of distraction, ${activePersonName}. Re-anchor your awareness and resume daily study/rehab sprints.`
-                    : `Let go of distraction, ${activePersonName}. Re-anchor your awareness and resume your daily sovereign protocols.`;
-                  let statusLabel = "Realigning Focus";
-                  if (consistencyScore >= 80) {
-                    quote = `Magnificent discipline, ${activePersonName}. Your physical grit aligns perfectly with your mental calm.`;
-                    statusLabel = "Optimal Alignment";
-                  } else if (consistencyScore >= 50) {
-                    quote = "A steady path is a noble path. Solid progress, but eliminate friction to unlock peak performance.";
-                    statusLabel = "Steady Progress";
-                  }
-
-                  const activeDayData = trajDays.find(d => d.dateStr === selectedTrajDay) || trajDays[6];
-
-                  return (
-                    <div className={`glass-panel rounded-3xl p-6 border space-y-6 ${theme === "bright" ? "border-amber-500/10" : "border-indigo-500/15"}`}>
-                      {/* Header */}
-                      <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-4 ${theme === "bright" ? "border-stone-200" : "border-white/5"}`}>
-                        <div>
-                          <div className="flex items-center gap-1.5 text-xs font-mono text-indigo-400 uppercase tracking-widest mb-0.5">
-                            <Calendar className="w-4 h-4 animate-pulse" /> Weekly Trajectory
-                          </div>
-                          <h3 className={`text-xl font-display font-black tracking-tight ${theme === "bright" ? "text-stone-900" : "text-white"}`}>Goal & Habit Consistency</h3>
-                          <p className={`text-xs ${theme === "bright" ? "text-stone-600" : "text-slate-400"}`}>
-                            Dynamically analyzed completion rates over the last 7 days based on chronicled history logs.
-                          </p>
-                        </div>
-                        <div className={`text-right px-3 py-1.5 rounded-xl border font-mono text-[10px] uppercase font-bold ${
-                          consistencyScore >= 80 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                          consistencyScore >= 50 ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
-                          "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                        }`}>
-                          {statusLabel}
-                        </div>
-                      </div>
-
-                      {/* Content Grid */}
-                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        
-                        {/* Column 1: Consistency Circle & Wisdom (4 cols) */}
-                        <div className={`lg:col-span-4 p-5 rounded-2xl border flex flex-col items-center justify-between text-center space-y-4 ${
-                          theme === "bright" ? "bg-stone-50 border-stone-200" : "bg-white/2 border-white/5"
-                        }`}>
-                          <div className="space-y-1">
-                            <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest block">Consistency Index</span>
-                            <span className={`text-xs font-sans font-medium ${theme === "bright" ? "text-stone-700" : "text-slate-300"}`}>7-Day Logging Rate</span>
-                          </div>
-
-                          {/* SVG Gauge */}
-                          <div className="relative flex items-center justify-center w-28 h-28">
-                            <svg className="w-28 h-28 transform -rotate-90">
-                              <circle cx="56" cy="56" r="46" className={theme === "bright" ? "text-stone-200" : "text-white/5"} strokeWidth="8" stroke="currentColor" fill="transparent" />
-                              <circle 
-                                cx="56" 
-                                cy="56" 
-                                r="46" 
-                                className={consistencyScore >= 80 ? "text-emerald-400" : "text-indigo-400"} 
-                                strokeWidth="8" 
-                                strokeDasharray={`${consistencyScore * 2.89}, 289`} 
-                                stroke="currentColor" 
-                                fill="transparent" 
-                                strokeLinecap="round" 
-                              />
-                            </svg>
-                            <div className="absolute flex flex-col items-center">
-                              <span className={`text-3xl font-display font-black tracking-tight ${theme === "bright" ? "text-stone-900" : "text-white"}`}>{consistencyScore}%</span>
-                              <span className="text-[8px] font-mono text-slate-500 tracking-wider uppercase">{activeDaysCount} / 7 Days</span>
-                            </div>
-                          </div>
-
-                          {/* Wisdom directive quote */}
-                          <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10 relative w-full">
-                            <span className="absolute -top-2.5 left-4 text-xs">🧘</span>
-                            <p className={`text-[11px] italic leading-relaxed ${theme === "bright" ? "text-stone-700" : "text-slate-300"}`}>
-                              "{quote}"
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Column 2: 7-Day Activity Calendar details (4 cols) */}
-                        <div className={`lg:col-span-4 p-5 rounded-2xl border flex flex-col justify-between space-y-4 ${
-                          theme === "bright" ? "bg-stone-50 border-stone-200" : "bg-white/2 border-white/5"
-                        }`}>
-                          <div className="space-y-1">
-                            <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest block">Daily Log Cadence</span>
-                            <span className={`text-xs font-sans font-medium ${theme === "bright" ? "text-stone-700" : "text-slate-300"}`}>Select day to inspect logs</span>
-                          </div>
-
-                          {/* Row of Days */}
-                          <div className="grid grid-cols-7 gap-1.5">
-                            {trajDays.map((day) => {
-                              const isSelected = selectedTrajDay === day.dateStr;
-                              return (
-                                <button
-                                  key={day.dateStr}
-                                  type="button"
-                                  onClick={() => {
-                                    sound.playWoodblock();
-                                    setSelectedTrajDay(day.dateStr);
-                                  }}
-                                  className={`py-2 px-1 rounded-xl border flex flex-col items-center justify-between gap-1 transition-all cursor-pointer ${
-                                    isSelected 
-                                      ? "bg-indigo-600 border-indigo-400 text-white shadow-md shadow-indigo-950/40" 
-                                      : day.active
-                                        ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20"
-                                        : "bg-white/2 border-white/5 text-slate-500 hover:bg-white/5"
-                                  }`}
-                                >
-                                  <span className="text-[9px] font-mono font-bold uppercase">{day.dayName}</span>
-                                  <div className={`w-1.5 h-1.5 rounded-full ${
-                                    isSelected 
-                                      ? "bg-white animate-pulse" 
-                                      : day.active 
-                                        ? "bg-indigo-400" 
-                                        : "bg-transparent border border-slate-700"
-                                  }`} />
-                                  <span className="text-[8px] font-mono">{day.shortDate.split('/')[1]}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {/* Selected Day Logs micro-timeline */}
-                          <div className={`p-3 rounded-xl border flex-1 min-h-[120px] max-h-[140px] overflow-y-auto no-scrollbar ${
-                            theme === "bright" ? "bg-white border-stone-200" : "bg-black/20 border-white/5"
-                          }`}>
-                            <div className="flex justify-between items-center mb-2 border-b border-white/5 pb-1">
-                              <span className="text-[9px] font-mono text-indigo-400 font-bold uppercase">{activeDayData?.dayName}, {activeDayData?.shortDate}</span>
-                              <span className="text-[8px] font-mono text-slate-500">{activeDayData?.logs.length} logged</span>
-                            </div>
-                            
-                            {activeDayData?.logs.length === 0 ? (
-                              <div className="text-center py-6 text-slate-500 text-[10px] italic">
-                                No chronicle logs recorded on this day.
-                              </div>
-                            ) : (
-                              <div className="space-y-2">
-                                {activeDayData?.logs.map((log) => (
-                                  <div key={log.id} className="space-y-0.5 text-left">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-[10px]">{trackedCategories.find(c => c.key === log.type)?.icon || "📝"}</span>
-                                      <span className={`text-[10px] font-bold ${theme === "bright" ? "text-stone-800" : "text-white"}`}>{log.title}</span>
-                                    </div>
-                                    <p className={`text-[9px] leading-normal ${theme === "bright" ? "text-stone-600" : "text-slate-400"} pl-4`}>{log.detail}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Column 3: Category Completion Rates (4 cols) */}
-                        <div className={`lg:col-span-4 p-5 rounded-2xl border flex flex-col justify-between space-y-3 ${
-                          theme === "bright" ? "bg-stone-50 border-stone-200" : "bg-white/2 border-white/5"
-                        }`}>
-                          <div className="space-y-1">
-                            <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest block">Category Completion</span>
-                            <span className={`text-xs font-sans font-medium ${theme === "bright" ? "text-stone-700" : "text-slate-300"}`}>Logging saturation rates</span>
-                          </div>
-
-                          <div className="space-y-2.5 overflow-y-auto max-h-[175px] no-scrollbar pr-1">
-                            {categoryStats.map((cat) => (
-                              <div key={cat.key} className="space-y-1">
-                                <div className="flex justify-between items-center text-[10px] font-mono">
-                                  <span className="flex items-center gap-1">
-                                    <span>{cat.icon}</span>
-                                    <span className={theme === "bright" ? "text-stone-800 font-semibold" : "text-white"}>{cat.name}</span>
-                                  </span>
-                                  <span className="text-slate-400 font-bold">{cat.daysLogged}/7 Days ({cat.rate}%)</span>
-                                </div>
-                                <div className={`w-full h-1.5 rounded-full overflow-hidden ${theme === "bright" ? "bg-stone-200" : "bg-white/10"}`}>
-                                  <div 
-                                    className={`h-full rounded-full bg-gradient-to-r ${
-                                      cat.rate >= 50 
-                                        ? "from-indigo-400 to-indigo-500" 
-                                        : cat.rate >= 20 
-                                          ? "from-indigo-400/60 to-indigo-500/60" 
-                                          : theme === "bright" ? "from-stone-300 to-stone-400" : "from-stone-700 to-stone-600"
-                                    }`} 
-                                    style={{ width: `${cat.rate}%` }}
-                                  />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Animated Telemetry Monthly Trend Visualizer Section */}
-                <div className={`glass-panel rounded-3xl p-6 border space-y-4 ${theme === "bright" ? "border-stone-200" : "border-indigo-500/10"}`}>
-                  <div className={`flex items-center justify-between border-b pb-2 ${theme === "bright" ? "border-stone-200" : "border-white/5"}`}>
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-indigo-400" />
-                      <h3 className={`text-sm font-display font-bold uppercase tracking-wider ${theme === "bright" ? "text-stone-900" : "text-white"}`}>Mission Telemetry Trends</h3>
-                    </div>
-                    <span className="text-[10px] text-indigo-400 font-mono uppercase bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">Interactive Recharts Core</span>
-                  </div>
-                  <p className={`text-xs leading-relaxed font-sans ${theme === "bright" ? "text-stone-600" : "text-slate-400"}`}>
-                    Inspect weekly goal completion percentage versus target benchmark alignment, alongside high-resolution telemetry projections for body composition, sleep recovery, and cognitive prep volume.
-                  </p>
-                  <MetricCharts metrics={dbState.metrics} dbState={dbState} theme={theme} />
-                </div>
-
-                {/* Main Bento Modules */}
-                <div className="space-y-4">
-                  <h3 className={`text-xs uppercase tracking-widest font-mono ${theme === "bright" ? "text-stone-500" : "text-slate-400"}`}>Second Brain Core Spheres (Mission Control)</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {(dbState.categoryPlans && dbState.categoryPlans.length > 0 ? dbState.categoryPlans : [
-                      { category: "fitness", title: "Body & Physique", icon: "💪", status: "Plan A active", mission: "Spider-Man Physique plan on track.", recommendation: "Focus post-workout protein intake.", predictions: "Muscle synthesis peak target at 18:00.", actionBtnText: "Tune Body Trax" },
-                      { category: "nutrition", title: "Zen Mind & Spirit", icon: "🧘", status: "Sovereign state optimal", mission: "Vipassana awareness index is optimal.", recommendation: "Sustain 20 mins morning breath check.", predictions: "Calm score predicted to hit 95% today.", actionBtnText: "Refine Mind Core" },
-                      { category: "mba", title: "Cognitive Learning (MBA)", icon: "🎓", status: "Prep velocity high", mission: "Study schedules perfectly loaded.", recommendation: "Run 3 Verbal correction loops early.", predictions: "Prep proficiency projected +1.2% by Sat.", actionBtnText: "Sovereign Brain Study" },
-                      { category: "finance", title: "Finance Empire", icon: "📈", status: "Compounding status active", mission: "Reserve trajectory calibrated.", recommendation: "Minimize daily micro-expenditure velocity.", predictions: "Asset value trend remains positive.", actionBtnText: "Consult Treasury" },
-                      { category: "travel", title: "Travel Chronicles", icon: "🏍️", status: "Da Nang route scheduled", mission: "Coastal maps compiled.", recommendation: "Confirm tire pressure and pack warm layers.", predictions: "Weather index: Perfect for mountain run.", actionBtnText: "Inspect Logistics" },
-                      { category: "music", title: "Creative Synthesis", icon: "🎹", status: "Active composing status", mission: "Creative synthesis index matches goal.", recommendation: "Log 128 BPM progressive track parts.", predictions: "Focus window optimal after workout.", actionBtnText: "Open DAW Desk" }
-                    ]).map((mod) => {
-                      const decor = DECORATIVE_CLASSES[mod.category] || { color: "from-stone-500/10 to-neutral-500/5", border: "border-stone-500/20", text: "text-stone-300" };
-                      const score = getCategoryScore(mod.category);
-                      return (
-                        <motion.div 
-                          key={mod.category} 
-                          whileHover={{ 
-                            scale: 1.025,
-                            borderColor: theme === "bright" ? "rgba(99, 102, 241, 0.45)" : "rgba(129, 140, 248, 0.55)",
-                            boxShadow: theme === "bright" 
-                              ? "0 20px 25px -5px rgba(99, 102, 241, 0.12), 0 8px 10px -6px rgba(99, 102, 241, 0.12), 0 0 15px rgba(99, 102, 241, 0.2)" 
-                              : "0 20px 25px -5px rgba(129, 140, 248, 0.22), 0 8px 10px -6px rgba(129, 140, 248, 0.22), 0 0 20px rgba(129, 140, 248, 0.35)"
-                          }}
-                          transition={{ duration: 0.25, ease: "easeInOut" }}
-                          className={`glass-panel rounded-3xl p-5 border ${decor.border} bg-gradient-to-tr ${decor.color} flex flex-col justify-between space-y-4 relative overflow-hidden group transition-all`}
-                        >
-                          
-                          {/* Header: Score and Icon */}
-                          <div className="flex justify-between items-start relative z-10">
-                            <div className="flex items-center gap-2">
-                              <span className="text-2xl">{mod.icon}</span>
-                              <div>
-                                <h4 className={`text-xs font-mono uppercase tracking-wider ${theme === "bright" ? "text-stone-700" : "text-slate-400"}`}>{mod.title}</h4>
-                                <span className={`text-[10px] font-mono ${theme === "bright" ? "text-stone-500" : "text-slate-500"}`}>{mod.status}</span>
-                              </div>
-                            </div>
-
-                            <div className="relative flex items-center justify-center">
-                              {/* SVG score ring */}
-                              <svg className="w-10 h-10 transform -rotate-90">
-                                <circle cx="20" cy="20" r="16" className="text-white/5" strokeWidth="3" stroke="currentColor" fill="transparent" />
-                                <circle cx="20" cy="20" r="16" className={decor.text} strokeWidth="3" strokeDasharray={`${parseFloat(score) * 1.005}, 100`} stroke="currentColor" fill="transparent" strokeLinecap="round" />
-                              </svg>
-                              <span className={`absolute text-[10px] font-mono font-bold ${theme === "bright" ? "text-stone-800" : "text-white"}`}>{score}</span>
-                            </div>
-                          </div>
-
-                          {/* Middle body: recommendation and state */}
-                          <div className="space-y-1.5 relative z-10">
-                            <p className={`text-xs font-semibold ${theme === "bright" ? "text-stone-900" : "text-white"}`}>"{mod.mission || "Sustain standard operational continuity."}"</p>
-                            <div className={`${theme === "bright" ? "bg-amber-500/5 border-amber-500/10" : "bg-white/3 border-white/5"} p-2.5 rounded-xl`}>
-                              <span className="text-[9px] font-mono text-amber-500 uppercase tracking-widest block mb-0.5">Buddha's Directive</span>
-                              <p className={`text-[11px] font-sans leading-relaxed ${theme === "bright" ? "text-stone-700" : "text-slate-300"}`}>{mod.recommendation}</p>
-                            </div>
-                            
-                            {mod.predictions && (
-                              <div className={`${theme === "bright" ? "bg-indigo-500/5 border-indigo-500/10" : "bg-indigo-950/10 border-indigo-500/10"} p-2 rounded-xl text-[10px] font-mono`}>
-                                <span className="text-indigo-400 block font-bold uppercase tracking-wider text-[8px] mb-0.5">Prediction model</span>
-                                <span className={`${theme === "bright" ? "text-stone-600" : "text-slate-400"}`}>{mod.predictions}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Interactive trigger shortcut */}
-                          <button
-                            onClick={() => {
-                              sound.playSingingBowl();
-                              if (mod.category === "fitness") {
-                                setActiveView("fitness_physique");
-                              } else if (mod.category === "nutrition") {
-                                setActiveView("food_goals");
-                              } else if (mod.category === "mba") {
-                                setActiveView("cognitive_mba");
-                              } else if (mod.category === "finance") {
-                                setActiveView("zen_finance");
-                              } else if (mod.category === "travel") {
-                                setActiveView("travel_chronicles");
-                              } else if (mod.category === "music") {
-                                setActiveView("music_production");
-                              } else {
-                                setActiveView("mission_control");
-                              }
-                            }}
-                            className="w-full py-2 bg-white/2 hover:bg-white/5 rounded-xl border border-white/5 text-[10px] font-mono uppercase tracking-wider text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer"
-                          >
-                            {mod.actionBtnText || "Consult Agent Panel"} <Sparkles className="w-3 h-3 text-amber-500" />
-                          </button>
-
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-              </div>
+              <MissionDashboard
+                dbState={dbState}
+                user={user}
+                theme={theme}
+                onUpdateState={handleUpdateState}
+                onOpenAiPreferences={() => setIsAiPreferencesModalOpen(true)}
+                onNavigateToView={(v) => { sound.playSingingBowl(); setActiveView(v as any); }}
+              />
             )}
 
             {/* ASPECT SPECIFIC CUSTOM MODULAR VIEWS */}
@@ -2399,6 +1671,20 @@ export default function App() {
         initialPreferences={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
         currentSelectedAIs={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
         onSavePreferences={handleSaveAiPreferences}
+        theme={theme}
+      />
+
+      {/* Sovereign Name & Mandatory Password Management Modal */}
+      <UpdateCredentialsModal
+        isOpen={isUpdateCredentialsModalOpen}
+        onClose={() => setIsUpdateCredentialsModalOpen(false)}
+        user={user}
+        onUpdateUser={(updated) => {
+          setUser(updated);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("zen-user-session", JSON.stringify(updated));
+          }
+        }}
         theme={theme}
       />
 

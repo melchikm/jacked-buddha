@@ -6,7 +6,7 @@ import {
   CheckSquare, Calendar, RefreshCw, Signal, Wifi, Battery, BatteryCharging, 
   Volume2, VolumeX, Smartphone, Monitor, ChevronLeft, Send, Moon, Sun, 
   Play, Pause, Sliders, Settings, AppWindow, Folder, FolderHeart, 
-  CheckCircle2, AlertTriangle, ShieldAlert, Clock, Sparkle, RefreshCcw, Bluetooth, Cloud
+  CheckCircle2, AlertTriangle, ShieldAlert, Clock, Sparkle, RefreshCcw, Bluetooth, Cloud, Key
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { sound } from "../utils/soundEngine";
@@ -34,6 +34,7 @@ import ArchitectStudio from "./ArchitectStudio";
 import SovereignCalendarView from "./SovereignCalendarView";
 import MountainOfLifeView from "./MountainOfLifeView";
 import DailySovereignRoutine from "./DailySovereignRoutine";
+import MissionDashboard from "./MissionDashboard";
 
 export interface IosDeviceShellProps {
   user: UserProfile;
@@ -51,6 +52,7 @@ export interface IosDeviceShellProps {
   onToggleLayoutMode: () => void;
   onSave?: () => void;
   onResetAll?: () => void;
+  onOpenUpdateCredentials?: () => void;
 }
 
 export default function IosDeviceShell({
@@ -68,7 +70,8 @@ export default function IosDeviceShell({
   onUpdateState,
   onToggleLayoutMode,
   onSave,
-  onResetAll
+  onResetAll,
+  onOpenUpdateCredentials
 }: IosDeviceShellProps) {
   const [iosTab, setIosTab] = useState<"dashboard" | "oracle" | "logs" | "library" | "controls">("dashboard");
   const [iosActiveApp, setIosActiveApp] = useState<string>("none");
@@ -761,362 +764,25 @@ export default function IosDeviceShell({
                 </motion.div>
               ) : null}
 
-              {/* TAB 1. iOS HOME DASHBOARD (Bento widgets & Daily status metrics) */}
+              {/* TAB 1. iOS HOME DASHBOARD (Scheduled Activities for Today & Respective Days + Short-Term Goals) */}
               {iosTab === "dashboard" && (
                 <motion.div
                   key="ios-home"
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="px-5 pt-6 space-y-6 text-left"
+                  className="px-4 pt-4 pb-12 text-left"
                 >
-                  {/* Apple Widget Header */}
-                  <div className="flex justify-between items-end">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono tracking-widest text-slate-500 uppercase">Dharma Operations</span>
-                        {onSave && (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                sound.playTingsha();
-                                onSave();
-                              }}
-                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                                saveStatus === "saving"
-                                  ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30 animate-pulse"
-                                  : saveStatus === "saved"
-                                    ? "bg-emerald-500/25 text-emerald-400 border-emerald-500/30"
-                                    : theme === "bright"
-                                      ? "bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200"
-                                      : "bg-stone-800 text-slate-400 border-white/5 hover:bg-stone-700"
-                              }`}
-                            >
-                              <Cloud className="w-2.5 h-2.5" />
-                              <span>{saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved!" : "Sync"}</span>
-                            </button>
-                            {lastSyncedAt && (
-                              <span className="text-[9px] font-mono text-emerald-400 flex items-center gap-1 opacity-90">
-                                <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                                <span>{lastSyncedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <h2 className={`text-2xl font-black font-display tracking-tight leading-none ${theme === "bright" ? "text-stone-900" : "text-white"}`}>
-                        {getTimeGreeting().greeting}, {user?.name || user?.username || "Friend"}
-                      </h2>
-                      <span className="text-[10px] font-sans text-slate-400 block mt-0.5">
-                        {getTimeGreeting().emoji} {getTimeGreeting().phaseLabel} • Vita Core
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-mono text-slate-500 tracking-wider">Alignment Index</span>
-                      <span className="text-lg font-bold text-emerald-400 block">⚡ {dbState.todayPlan?.balanceScore || 84}%</span>
-                    </div>
-                  </div>
-
-                  {/* ACTIVE DIRECTIVE WIDGET */}
-                  <div 
-                    onClick={() => setIosActiveApp("daily_summary")}
-                    className="p-4 rounded-3xl bg-gradient-to-tr from-indigo-600/10 via-purple-600/10 to-pink-500/5 border border-indigo-500/25 relative overflow-hidden group cursor-pointer shadow-md hover:border-indigo-400/40 transition-all"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                      <span className="text-[9px] font-mono uppercase tracking-wider text-indigo-400 font-bold">Active Directive Card</span>
-                    </div>
-                    <p className="text-xs font-semibold leading-normal font-sans pr-4">
-                      "{dbState.todayPlan?.focus || (hasMbaApp ? "Sustain GMAT, conduct physical active-rehab, and log alchemist proteins." : "Execute priority focus sprints, sustain physical conditioning, and preserve clarity.")}"
-                    </p>
-                    <div className="flex justify-between items-center mt-3 border-t border-white/5 pt-2.5">
-                      <span className="text-[9px] font-mono text-slate-500">🔥 14 Days Streak Active</span>
-                      <span className="text-[9px] font-mono text-indigo-400 font-bold flex items-center gap-0.5">
-                        Open Plan <ChevronRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* DAILY SOVEREIGN ROUTINE BANNER (IOS WIDGET) */}
-                  <div
-                    onClick={() => { sound.playWoodblock(); setIosActiveApp("daily_sovereign_routine"); }}
-                    className="p-4 rounded-3xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-emerald-500/5 border border-amber-500/20 cursor-pointer shadow-md hover:border-amber-400/40 transition-all space-y-2.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="p-1 rounded-lg bg-amber-500/20 text-amber-400 text-xs">⚡</span>
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">Daily Sovereign Routine</span>
-                      </div>
-                      <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                        {dbState.scheduledTasks?.filter(t => t.completed).length || 0}/{dbState.scheduledTasks?.length || 0} Tasks
-                      </span>
-                    </div>
-                    <p className="text-xs font-semibold text-white">
-                      Full-day time blocks: Deep Work, Physical Vessel & Focused Execution.
-                    </p>
-                    <div className="w-full h-1.5 rounded-full bg-stone-800 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 rounded-full transition-all"
-                        style={{
-                          width: `${dbState.scheduledTasks?.length ? Math.round(((dbState.scheduledTasks.filter(t => t.completed).length / dbState.scheduledTasks.length) * 100)) : 0}%`
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* DOUBLE SQUARE STATS CONTAINER */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Mission Execution Widget (Replaces Recovery) */}
-                    <div className="p-4 rounded-3xl bg-stone-900/40 border border-white/5 flex flex-col justify-between h-28 relative">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">MISSION ALIGNMENT</span>
-                        <span className="text-xs">🎯</span>
-                      </div>
-                      <div>
-                        <h4 className="text-3xl font-display font-black tracking-tight leading-none text-emerald-400">
-                          {((dbState.scheduledTasks?.filter(t => t.completed).length || 0) + (dbState.aiDailyGoals?.filter(g => g.completed).length || 0))}
-                          <span className="text-lg font-mono text-slate-500 font-normal"> / {Math.max(1, (dbState.scheduledTasks?.length || 0) + (dbState.aiDailyGoals?.length || 0))}</span>
-                        </h4>
-                        <p className="text-[9px] text-slate-400 font-sans mt-1">Real-time daily objectives done.</p>
-                      </div>
-                    </div>
-
-                    {/* Dynamic Secondary Widget (GMAT Prep if MBA app selected, else Titan Vessel / Stillness) */}
-                    {hasMbaApp ? (
-                      <div className="p-4 rounded-3xl bg-stone-900/40 border border-white/5 flex flex-col justify-between h-28 relative">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">GMAT PREP</span>
-                          <span className="text-xs">📚</span>
-                        </div>
-                        <div>
-                          <h4 className="text-3xl font-display font-black tracking-tight leading-none text-sky-400">{dbState.metrics.mbaHours} hrs</h4>
-                          <p className="text-[9px] text-slate-400 font-sans mt-1">Study index: Flawless status.</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-4 rounded-3xl bg-stone-900/40 border border-white/5 flex flex-col justify-between h-28 relative">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">ZEN STILLNESS</span>
-                          <span className="text-xs">🧘</span>
-                        </div>
-                        <div>
-                          <h4 className="text-3xl font-display font-black tracking-tight leading-none text-amber-400">{dbState.metrics.meditation || 0}m</h4>
-                          <p className="text-[9px] text-slate-400 font-sans mt-1">Mindful awareness logged.</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* MACRO COMPACT CHIP WIDGET */}
-                  <div className="p-4 rounded-3xl bg-stone-900/40 border border-white/5 space-y-3">
-                    <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest block">Protein Bio-Alchemist Tracker</span>
-                    
-                    <div className="flex justify-between items-end">
-                      <h4 className="text-base font-bold font-sans">🍖 Fuel Target: <strong className="text-amber-500">{dbState.metrics.protein}g</strong> / 180g</h4>
-                      <span className="text-[10px] font-mono text-slate-500">{(dbState.metrics.protein / 1.8).toFixed(0)}% Done</span>
-                    </div>
-                    {/* Progress bar */}
-                    <div className="w-full h-2 rounded-full bg-stone-800 overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full" 
-                        style={{ width: `${Math.min(100, (dbState.metrics.protein / 180) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* ACTIVE REHABILITATION PROGRESS TRACKER */}
-                  <div className="p-4 rounded-3xl bg-stone-900/40 border border-white/5 space-y-2.5 text-xs">
-                    <div className="flex items-center gap-1.5 text-rose-400 font-bold uppercase font-mono text-[9px] tracking-wider">
-                      <ShieldAlert className="w-3.5 h-3.5" /> Rotator-Cuff Rehab Lockout
-                    </div>
-                    <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
-                      Biomechanical warning: Do not lift heavy loads overhead today. Focus strictly on eccentric face-pulls.
-                    </p>
-                    <div className="bg-red-500/5 border border-red-500/10 p-2.5 rounded-2xl flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">🏋️</span>
-                        <div>
-                          <span className="text-[10px] font-bold block text-white">Shoulder Health Index</span>
-                          <span className="text-[9px] font-mono text-rose-400">Inflamed (Rotator Strain)</span>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => setIosActiveApp("fitness_physique")}
-                        className="px-2.5 py-1 text-[9px] font-mono bg-rose-500/10 border border-rose-500/20 text-rose-300 rounded-xl cursor-pointer"
-                      >
-                        LOG REHAB
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* WEEKLY TRAJECTORY COMPACT WIDGET */}
-                  {(() => {
-                    const referenceDate = new Date("2026-07-19T12:00:00");
-                    const daysList = [];
-                    for (let i = 6; i >= 0; i--) {
-                      const d = new Date(referenceDate);
-                      d.setDate(referenceDate.getDate() - i);
-                      const yyyy = d.getFullYear();
-                      const mm = String(d.getMonth() + 1).padStart(2, '0');
-                      const dd = String(d.getDate()).padStart(2, '0');
-                      daysList.push(`${yyyy}-${mm}-${dd}`);
-                    }
-
-                    const trajDays = daysList.map(dayStr => {
-                      const logsForDay = (dbState.historyLogs || []).filter(log => log.date === dayStr);
-                      return {
-                        dateStr: dayStr,
-                        dayName: new Date(dayStr + "T12:00:00").toLocaleDateString('en-US', { weekday: 'narrow' }), // S, M, T, W...
-                        shortDate: new Date(dayStr + "T12:00:00").toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }),
-                        logs: logsForDay,
-                        count: logsForDay.length,
-                        active: logsForDay.length > 0
-                      };
-                    });
-
-                    const trackedCategories = [
-                      { key: "fitness", name: "Fitness", icon: "💪" },
-                      { key: "nutrition", name: "Nutrition", icon: "🥗" },
-                      { key: "mind", name: "Zen Mind", icon: "🧘" },
-                      ...(hasMbaApp ? [{ key: "mba", name: "GMAT", icon: "🎓" }] : []),
-                      { key: "finance", name: "Finance", icon: "📈" },
-                      { key: "reading", name: "Reading", icon: "📚" }
-                    ];
-
-                    const activeDaysCount = trajDays.filter(d => d.active).length;
-                    const consistencyScore = Math.round((activeDaysCount / 7) * 100);
-
-                    const activeDayData = trajDays.find(d => d.dateStr === selectedIosTrajDay) || trajDays[6];
-
-                    return (
-                      <div className="p-4 rounded-3xl bg-stone-900/40 border border-white/5 space-y-4 text-xs">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">📅 Weekly Trajectory</span>
-                          <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full ${
-                            consistencyScore >= 80 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
-                          }`}>
-                            ⚡ {consistencyScore}% CONSISTENCY
-                          </span>
-                        </div>
-
-                        {/* Ring Progress & 7 Days Layout Row */}
-                        <div className="flex items-center gap-4 bg-black/10 p-2.5 rounded-2xl border border-white/5">
-                          {/* Mini Arc Gauge */}
-                          <div className="relative flex items-center justify-center w-12 h-12 flex-shrink-0">
-                            <svg className="w-12 h-12 transform -rotate-90">
-                              <circle cx="24" cy="24" r="18" className="text-white/5" strokeWidth="3" stroke="currentColor" fill="transparent" />
-                              <circle 
-                                cx="24" 
-                                cy="24" 
-                                r="18" 
-                                className={consistencyScore >= 80 ? "text-emerald-400" : "text-indigo-400"} 
-                                strokeWidth="3" 
-                                strokeDasharray={`${consistencyScore * 1.13}, 113`} 
-                                stroke="currentColor" 
-                                fill="transparent" 
-                                strokeLinecap="round" 
-                              />
-                            </svg>
-                            <span className="absolute text-[10px] font-bold text-white font-mono">{activeDaysCount}/7d</span>
-                          </div>
-
-                          {/* 7 Day selectors */}
-                          <div className="flex justify-between flex-1 gap-1">
-                            {trajDays.map((day) => {
-                              const isSelected = selectedIosTrajDay === day.dateStr;
-                              return (
-                                <button
-                                  key={day.dateStr}
-                                  type="button"
-                                  onClick={() => {
-                                    sound.playWoodblock();
-                                    setSelectedIosTrajDay(day.dateStr);
-                                  }}
-                                  className={`flex-1 py-1 px-0.5 rounded-lg border flex flex-col items-center justify-between transition-all cursor-pointer ${
-                                    isSelected 
-                                      ? "bg-indigo-600 border-indigo-400 text-white" 
-                                      : day.active
-                                        ? "bg-indigo-500/10 border-indigo-500/25 text-indigo-400"
-                                        : "bg-white/2 border-white/5 text-slate-500"
-                                  }`}
-                                >
-                                  <span className="text-[8px] font-mono font-bold uppercase">{day.dayName}</span>
-                                  <div className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : day.active ? "bg-indigo-400" : "bg-slate-700"}`} />
-                                  <span className="text-[7px] font-mono">{day.shortDate.split('/')[1]}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Selected day log details timeline inside widget */}
-                        <div className="p-3 rounded-2xl bg-black/20 border border-white/5">
-                          <div className="flex justify-between items-center mb-1.5 border-b border-white/5 pb-1">
-                            <span className="text-[9px] font-mono text-indigo-400 font-bold uppercase">Logs for {activeDayData?.dayName} ({activeDayData?.shortDate})</span>
-                            <span className="text-[8px] font-mono text-slate-500">{activeDayData?.logs.length} logged</span>
-                          </div>
-
-                          {activeDayData?.logs.length === 0 ? (
-                            <p className="text-center py-2 text-slate-500 text-[9px] italic">No logs on this day.</p>
-                          ) : (
-                            <div className="space-y-1.5 max-h-[80px] overflow-y-auto no-scrollbar">
-                              {activeDayData?.logs.map((log) => (
-                                <div key={log.id} className="text-left text-[9px] leading-snug">
-                                  <span className="font-semibold text-slate-300 mr-1">{trackedCategories.find(c => c.key === log.type)?.icon} {log.title}:</span>
-                                  <span className="text-slate-400">{log.detail}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Tap to expand category rates */}
-                        <div className="border-t border-white/5 pt-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              sound.playWoodblock();
-                              setShowIosCategoryRates(!showIosCategoryRates);
-                            }}
-                            className="w-full flex justify-between items-center text-[9px] font-mono uppercase tracking-wider text-indigo-400 cursor-pointer"
-                          >
-                            <span>Category Saturation</span>
-                            <span>{showIosCategoryRates ? "Collapse ▲" : "Expand ▼"}</span>
-                          </button>
-
-                          {showIosCategoryRates && (
-                            <div className="mt-2.5 space-y-2 max-h-[120px] overflow-y-auto no-scrollbar pr-0.5">
-                              {trackedCategories.map(cat => {
-                                const daysLogged = daysList.filter(dayStr => {
-                                  return (dbState.historyLogs || []).some(log => log.date === dayStr && log.type === cat.key);
-                                }).length;
-                                const rate = Math.round((daysLogged / 7) * 100);
-                                return (
-                                  <div key={cat.key} className="space-y-1">
-                                    <div className="flex justify-between items-center text-[8px] font-mono">
-                                      <span className="flex items-center gap-1">
-                                        <span>{cat.icon}</span>
-                                        <span className="text-slate-300 font-bold">{cat.name}</span>
-                                      </span>
-                                      <span className="text-slate-500">{daysLogged}/7d ({rate}%)</span>
-                                    </div>
-                                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${rate}%` }} />
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-
+                  <MissionDashboard
+                    dbState={dbState}
+                    user={user}
+                    theme={theme}
+                    onUpdateState={onUpdateState}
+                    onOpenAiPreferences={() => setIosActiveApp("ai_council")}
+                    onNavigateToView={(view) => setIosActiveApp(view)}
+                  />
                 </motion.div>
               )}
-
               {/* TAB 2. iOS APPLE INTELLIGENCE SANCTUARY (Oracle AI Siri-style Chat) */}
               {iosTab === "oracle" && (
                 <motion.div
@@ -1503,11 +1169,26 @@ export default function IosDeviceShell({
                       </button>
                     </div>
 
+                    {onOpenUpdateCredentials && (
+                      <button
+                        onClick={() => {
+                          sound.playSubtleClick();
+                          setControlCenterOpen(false);
+                          onOpenUpdateCredentials();
+                        }}
+                        className="w-full py-3 px-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-[11px] font-mono text-amber-300 font-bold uppercase tracking-wider transition-all cursor-pointer text-center flex items-center justify-center gap-2"
+                      >
+                        <Key className="w-3.5 h-3.5 text-amber-400" />
+                        Update Name & Password
+                      </button>
+                    )}
+
                     <button
                       onClick={onLogout}
-                      className="w-full py-3 rounded-2xl bg-stone-950/80 hover:bg-rose-500/10 border border-white/5 text-[10px] font-mono text-slate-300 font-bold uppercase tracking-wider transition-all cursor-pointer text-center"
+                      className="w-full py-3 rounded-2xl bg-stone-950/80 hover:bg-rose-500/10 border border-white/5 text-[10px] font-mono text-slate-300 font-bold uppercase tracking-wider transition-all cursor-pointer text-center flex items-center justify-center gap-2"
                     >
-                      Sign Out melchi.km@gmail.com
+                      <LogOut className="w-3.5 h-3.5" />
+                      Sign Out {user?.email || user?.username || ""}
                     </button>
                   </div>
 

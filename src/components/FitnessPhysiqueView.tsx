@@ -14,7 +14,7 @@ export default function FitnessPhysiqueView({ metrics, onUpdateMetrics, theme }:
   const [query, setQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
-    { sender: "ai", text: "Greetings. I am the Physique Sculptor. Let us review your Spider-Man aesthetic matrix and enforce your active shoulder rehabilitation protocols. No training session is complete without clinical structural preservation." }
+    { sender: "ai", text: "Greetings. I am the Physique Sculptor. Let us review your athletic conditioning matrix and enforce your active shoulder rehabilitation protocols. No training session is complete without clinical structural preservation." }
   ]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState("");
@@ -93,7 +93,7 @@ export default function FitnessPhysiqueView({ metrics, onUpdateMetrics, theme }:
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-red-400 font-mono mb-1">
               <Dumbbell className="w-4 h-4 animate-spin-slow" /> Kinetic Engine
             </div>
-            <h2 className={`text-2xl font-display font-bold tracking-tight ${theme === "bright" ? "text-stone-900" : "text-white"}`}>Fitness & Spider-Man Physique</h2>
+            <h2 className={`text-2xl font-display font-bold tracking-tight ${theme === "bright" ? "text-stone-900" : "text-white"}`}>Fitness & Athletic Physique</h2>
             <p className={`text-sm mt-0.5 ${theme === "bright" ? "text-stone-600" : "text-slate-400"}`}>
               Active injury prevention, high-density physical loading, and athletic posture architecture.
             </p>

@@ -187,7 +187,7 @@ export function getGoalMatchedAgents(goals?: UserLongTermGoals): GoalMatchedAgen
     addMatch(
       "fitness",
       "health",
-      "Spider-Man Physique & Vitality",
+      "Athletic Physique & Vitality",
       "Biomechanic hypertrophy, joint preservation, and progressive physical conditioning.",
       "What is my ideal hypertrophy routine that protects my shoulders and builds athletic strength?"
     );

@@ -750,6 +750,34 @@ class SoundEngine {
     } catch (e) {}
   }
 
+  public playErrorChord() {
+    if (!this._enabled) return;
+    try {
+      const ctx = this.initCtx();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const notes = [220, 261.63, 311.13]; // A minor diminished triad
+      notes.forEach((freq) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.9, now + 0.25);
+
+        gain.gain.setValueAtTime(this._volume * 0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.35);
+      });
+    } catch (e) {}
+  }
+
   public stopAllAmbient() {
     this.rainActive = false;
     this.windActive = false;

@@ -56,6 +56,8 @@ export interface UserProfile {
   isOnboarded?: boolean;
   selectedAIs?: SelectedAIPreference[];
   welcomeAcknowledged?: boolean;
+  photoURL?: string;
+  hasPassword?: boolean;
 }
 
 export interface MetricState {
@@ -177,6 +179,7 @@ export interface ScheduledTask {
   notified?: boolean;
   category?: string;
   longTermAlignment?: string;
+  dateStr?: string;
 }
 
 export interface AIDailyGoal {
@@ -336,7 +339,7 @@ export const COUNCIL_AGENTS: CouncilAgent[] = [
     name: "Fitness AI",
     title: "The Sculptor",
     avatar: "💪",
-    specialty: "High-performance body engineering, Spider-Man Physique Plan, rehab, and biomechanics.",
+    specialty: "High-performance body engineering, athletic physique protocols, rehab, and biomechanics.",
     color: "from-red-500 to-rose-700",
     quote: "Pain is transient. The discipline you build is permanent."
   },
