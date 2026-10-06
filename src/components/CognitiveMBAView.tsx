@@ -201,7 +201,7 @@ export default function CognitiveMBAView({ metrics, onUpdateMetrics, theme }: Co
                     value={localMetrics.projects}
                     onChange={(e) => handleInputChange("projects", e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-indigo-500"
-                    placeholder="Vita OS, Startup MVP..."
+                    placeholder="Vita Life, Startup MVP..."
                   />
                 </div>
               </div>

@@ -72,14 +72,18 @@ class OfflineQueueManager {
   }
 
   private notifyListeners() {
-    const state = this.getState();
-    this.listeners.forEach((listener) => {
-      try {
-        listener(state);
-      } catch (err) {
-        console.error("[OfflineQueue] Listener error:", err);
-      }
-    });
+    if (typeof window === "undefined") return;
+    // Defer notification to next event tick so React render cycle is not interrupted
+    setTimeout(() => {
+      const state = this.getState();
+      this.listeners.forEach((listener) => {
+        try {
+          listener(state);
+        } catch (err) {
+          console.error("[OfflineQueue] Listener error:", err);
+        }
+      });
+    }, 0);
   }
 
   // Initialize network & visibility listeners
@@ -147,7 +151,11 @@ class OfflineQueueManager {
   // Subscribe to state changes
   public subscribe(listener: QueueListener): () => void {
     this.listeners.add(listener);
-    listener(this.getState());
+    setTimeout(() => {
+      if (this.listeners.has(listener)) {
+        listener(this.getState());
+      }
+    }, 0);
     return () => {
       this.listeners.delete(listener);
     };

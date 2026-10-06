@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { DBState, ScheduledTask, AIDailyGoal, TodayPlan, SelectedAIPreference } from "../types";
+import { extractDailyActionableGoals, ActionableDailyGoal } from "../utils/aiPreferencesSync";
 import { 
   Sparkles, CheckCircle2, X, ArrowRight, 
   Calendar, Clock, Zap, Check, AlertCircle, Plus, Trash2, 
@@ -91,7 +92,42 @@ export default function DailyPlanningModal({
     }
   }, [dbState.todayPlan, dbState.scheduledTasks, todayIso]);
 
-  if (!isOpen) return null;
+  // Actionable daily goals synthesized directly from user's custom-length goals & selected AIs
+  const actionableGoals = useMemo(() => {
+    return extractDailyActionableGoals(dbState);
+  }, [dbState]);
+
+  const handleAddActionableGoalToSchedule = (goal: ActionableDailyGoal) => {
+    sound.playWoodblock();
+    const newItem: GeneratedScheduleItem = {
+      id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      time: goal.suggestedTime,
+      title: goal.title,
+      detail: `${goal.aiName} · ${goal.horizon}`,
+      duration: goal.suggestedDuration,
+      category: goal.category,
+      longTermAlignment: goal.longTermGoal || `${goal.aiName} Target`
+    };
+    setGeneratedSchedule(prev => [...prev, newItem]);
+    setHasGenerated(true);
+  };
+
+  const handlePopulateFromAllActionableGoals = () => {
+    if (actionableGoals.length === 0) return;
+    sound.playTingsha();
+    const items: GeneratedScheduleItem[] = actionableGoals.map((goal, idx) => ({
+      id: `act-all-${Date.now()}-${idx}`,
+      time: goal.suggestedTime,
+      title: goal.title,
+      detail: `${goal.aiName} · ${goal.horizon}`,
+      duration: goal.suggestedDuration,
+      category: goal.category,
+      longTermAlignment: goal.longTermGoal || `${goal.aiName} Target`
+    }));
+    setGeneratedSchedule(items);
+    setCoreFocus(`Execute calibrated goals across ${activeAIs.length > 0 ? activeAIs.length : 'active'} pillars`);
+    setHasGenerated(true);
+  };
 
   // Quick prompt presets based on active apps or standard daily intentions
   const quickPrompts = useMemo(() => {
@@ -106,6 +142,8 @@ export default function DailyPlanningModal({
       "Review Priorities & Wind Down"
     ];
   }, [activeAIs]);
+
+  if (!isOpen) return null;
 
   const handleApplyQuickPrompt = (promptText: string) => {
     sound.playWoodblock();
@@ -129,6 +167,16 @@ export default function DailyPlanningModal({
           userBrainDump: userBrainDump.trim() || "Plan an optimal productive day with balanced focus, movement, and rest.",
           userScheduleNotes: userScheduleNotes.trim(),
           selectedAIs: activeAIs,
+          longTermGoals: dbState.longTermGoals || dbState.userProfile?.longTermGoals,
+          actionableGoals: actionableGoals.map(g => ({
+            title: g.title,
+            aiName: g.aiName,
+            horizon: g.horizon,
+            suggestedTime: g.suggestedTime,
+            suggestedDuration: g.suggestedDuration,
+            category: g.category,
+            longTermGoal: g.longTermGoal
+          })),
           timeOfDay: liveTime.phaseLabel
         })
       });
@@ -163,15 +211,25 @@ export default function DailyPlanningModal({
       }
     } catch (err) {
       console.warn("AI day-planner generation error, using clean fallback:", err);
-      // Clean fallback tailored directly to user's input
-      const fallbackTasks: GeneratedScheduleItem[] = [
-        { id: `fb-1`, time: "07:00 AM", title: "Morning Movement & Hydration", detail: "Hydrate, 10 min morning daylight, energizing workout", duration: "60 min", category: "body", longTermAlignment: "Vitality" },
-        { id: `fb-2`, time: "09:00 AM", title: "Primary Deep Focus Block", detail: userBrainDump.trim() ? `Focus: ${userBrainDump.substring(0, 70)}` : "High-priority execution block", duration: "90 min", category: "build", longTermAlignment: "Core Goal" },
-        { id: `fb-3`, time: "12:30 PM", title: "Lunch & Recharge Walk", detail: "Nutritious meal & outdoor stroll to clear the mind", duration: "45 min", category: "body", longTermAlignment: "Daily Reset" },
-        { id: `fb-4`, time: "02:00 PM", title: "Secondary Project & Tasks", detail: "Follow-up tasks, study, and project execution", duration: "75 min", category: "learning", longTermAlignment: "Milestones" },
-        { id: `fb-5`, time: "06:30 PM", title: "Evening Reset & Calm", detail: "Mindful pause, stretch, and disconnect from screens", duration: "30 min", category: "zen", longTermAlignment: "Well-Being" },
-        { id: `fb-6`, time: "09:00 PM", title: "Digital Sunset & Rest", detail: "Review completed wins, organize priorities for tomorrow", duration: "30 min", category: "body", longTermAlignment: "Sleep Restoration" }
-      ];
+      // Clean fallback tailored directly to user's actionable goals or input
+      const fallbackTasks: GeneratedScheduleItem[] = actionableGoals.length > 0
+        ? actionableGoals.slice(0, 6).map((g, idx) => ({
+            id: `act-fb-${Date.now()}-${idx}`,
+            time: g.suggestedTime,
+            title: g.title,
+            detail: `${g.aiName} · ${g.horizon}`,
+            duration: g.suggestedDuration,
+            category: g.category,
+            longTermAlignment: g.longTermGoal || `${g.aiName} Milestone`
+          }))
+        : [
+            { id: `fb-1`, time: "07:00 AM", title: "Morning Movement & Hydration", detail: "Hydrate, 10 min morning daylight, energizing workout", duration: "60 min", category: "body", longTermAlignment: "Vitality" },
+            { id: `fb-2`, time: "09:00 AM", title: "Primary Deep Focus Block", detail: userBrainDump.trim() ? `Focus: ${userBrainDump.substring(0, 70)}` : "High-priority execution block", duration: "90 min", category: "build", longTermAlignment: "Core Goal" },
+            { id: `fb-3`, time: "12:30 PM", title: "Lunch & Recharge Walk", detail: "Nutritious meal & outdoor stroll to clear the mind", duration: "45 min", category: "body", longTermAlignment: "Daily Reset" },
+            { id: `fb-4`, time: "02:00 PM", title: "Secondary Project & Tasks", detail: "Follow-up tasks, study, and project execution", duration: "75 min", category: "learning", longTermAlignment: "Milestones" },
+            { id: `fb-5`, time: "06:30 PM", title: "Evening Reset & Calm", detail: "Mindful pause, stretch, and disconnect from screens", duration: "30 min", category: "zen", longTermAlignment: "Well-Being" },
+            { id: `fb-6`, time: "09:00 PM", title: "Digital Sunset & Rest", detail: "Review completed wins, organize priorities for tomorrow", duration: "30 min", category: "body", longTermAlignment: "Sleep Restoration" }
+          ];
 
       setGeneratedSchedule(fallbackTasks);
       setCoreFocus(userBrainDump.trim() ? `Prioritize: ${userBrainDump.substring(0, 80)}` : "Execute today's goals with calm focus and purpose.");
@@ -406,6 +464,80 @@ export default function DailyPlanningModal({
               </button>
             </div>
           </div>
+
+          {/* ACTIONABLE GOALS FROM CALIBRATED HORIZONS */}
+          {actionableGoals.length > 0 && (
+            <div className={`p-4 rounded-2xl border space-y-3 ${
+              theme === "bright"
+                ? "bg-amber-50/50 border-amber-200/80"
+                : "bg-gradient-to-r from-amber-500/5 via-black/40 to-stone-900/60 border-amber-500/20"
+            }`}>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Target className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div>
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400 block">
+                      Actionable Daily Goals ({actionableGoals.length})
+                    </span>
+                    <span className="text-[10px] text-zinc-400">
+                      Synthesized from your custom-length horizons and active AI preferences
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handlePopulateFromAllActionableGoals}
+                    className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-[11px] font-mono font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Zap className="w-3 h-3 text-black" />
+                    <span>Add All to Schedule</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                {actionableGoals.map((goal, idx) => (
+                  <div
+                    key={`plan-goal-${goal.id}-${idx}`}
+                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-2.5 text-xs transition ${
+                      theme === "bright"
+                        ? "bg-white border-stone-200 hover:border-amber-400"
+                        : "bg-black/50 border-white/10 hover:border-amber-400/40"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <span className="text-lg shrink-0">{goal.aiIcon}</span>
+                      <div className="truncate">
+                        <div className="font-semibold text-xs truncate flex items-center gap-1.5">
+                          <span className="truncate">{goal.title}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono mt-0.5">
+                          <span className="text-amber-400 font-semibold">{goal.suggestedTime}</span>
+                          <span>·</span>
+                          <span>{goal.suggestedDuration}</span>
+                          <span>·</span>
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                            {goal.horizon}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleAddActionableGoalToSchedule(goal)}
+                      className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-amber-400 hover:text-black text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold shrink-0 transition cursor-pointer"
+                      title="Add to today's schedule"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 2. GENERATED SCHEDULE DISPLAY */}
           {hasGenerated && (

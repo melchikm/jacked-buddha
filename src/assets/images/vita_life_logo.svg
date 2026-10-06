@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="vitaBgGrad" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1f4b37" />
+      <stop offset="60%" stop-color="#153627" />
+      <stop offset="100%" stop-color="#0d2319" />
+    </radialGradient>
+
+    <!-- Golden Peak Halo Filter -->
+    <filter id="goldenHaloGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="22" result="blur1" />
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur1" />
+        <feMergeNode in="blur2" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Golden Summit Glow Radial -->
+    <radialGradient id="summitSunGlow" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#fff9d2" stop-opacity="1" />
+      <stop offset="30%" stop-color="#ffd55c" stop-opacity="0.85" />
+      <stop offset="70%" stop-color="#dfa435" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#dfa435" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Golden Mountain Cap Gradient -->
+    <linearGradient id="goldPeakGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#fffbe0" />
+      <stop offset="40%" stop-color="#ffde73" />
+      <stop offset="100%" stop-color="#d69f3d" />
+    </linearGradient>
+
+    <!-- Left Slope Gradient -->
+    <linearGradient id="leftSlopeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#557c5f" />
+      <stop offset="100%" stop-color="#3c5c44" />
+    </linearGradient>
+
+    <!-- Right Slope Dark Pine -->
+    <linearGradient id="rightSlopeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1b412f" />
+      <stop offset="100%" stop-color="#133123" />
+    </linearGradient>
+
+    <!-- Path Ivory Gradient -->
+    <linearGradient id="pathIvoryGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fdfbf5" />
+      <stop offset="100%" stop-color="#ece2cc" />
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Squircle App Icon Background -->
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#vitaBgGrad)" stroke="#27563f" stroke-width="4" />
+
+  <!-- 2. Radiant Golden Halo at Summit -->
+  <circle cx="256" cy="192" r="95" fill="url(#summitSunGlow)" filter="url(#goldenHaloGlow)" />
+  <ellipse cx="256" cy="180" r="45" ry="35" fill="#fff4be" opacity="0.6" filter="url(#goldenHaloGlow)" />
+
+  <!-- 3. Mountain Body & Slopes -->
+  <!-- Main Mountain Silhouette -->
+  <g id="mountainStructure">
+    <!-- Mountain Background Fill -->
+    <polygon points="256,158 132,352 380,352" fill="url(#rightSlopeGrad)" />
+
+    <!-- Left Shaded Facet -->
+    <polygon points="256,158 132,352 244,352 245,260 256,220" fill="url(#leftSlopeGrad)" opacity="0.9" />
+
+    <!-- Golden Luminous Summit Cap -->
+    <polygon points="256,158 232,228 280,228" fill="url(#goldPeakGrad)" />
+    <!-- Rounded Peak Tip -->
+    <circle cx="256" cy="164" r="8" fill="#fffbe8" />
+
+    <!-- Mountain Triangle Framing (Sage Green Outer Rim) -->
+    <!-- Left Slope Outer Edge -->
+    <line x1="256" y1="158" x2="132" y2="352" stroke="#608a68" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- Right Slope Outer Edge -->
+    <line x1="256" y1="158" x2="380" y2="352" stroke="#608a68" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- Base Horizontal Bar -->
+    <line x1="190" y1="352" x2="380" y2="352" stroke="#608a68" stroke-width="15" stroke-linecap="round" />
+  </g>
+
+  <!-- 4. Ascending Trail 3D Shadow / Drop Shelf (Dark Emerald) -->
+  <path d="M 124 358 
+           L 182 344 
+           L 204 316 
+           L 220 316 
+           L 226 278 
+           L 240 278 
+           L 262 244 
+           L 278 244 
+           L 288 260 
+           L 274 266 
+           L 256 266 
+           L 242 296 
+           L 226 296 
+           L 218 332 
+           L 196 332 
+           L 168 358 Z" 
+        fill="#0a1d13" opacity="0.95" />
+
+  <!-- 5. Ascending Trail (Crisp Ivory Path Zigzagging Upwards to Peak) -->
+  <path d="M 124 354
+           C 134 354, 158 344, 178 338
+           L 188 316
+           L 216 304
+           L 222 272
+           L 252 254
+           L 258 242
+           L 284 228
+           L 286 256
+           L 270 248
+           L 248 266
+           L 236 294
+           L 208 306
+           L 200 326
+           L 170 338
+           C 152 344, 134 350, 124 354 Z"
+        fill="url(#pathIvoryGrad)" />
+
+  <!-- Arrowhead at the Summit of the Trail -->
+  <polygon points="286,226 288,256 270,248 260,256 256,238 274,236" fill="url(#pathIvoryGrad)" stroke="#fffdf8" stroke-width="1" stroke-linejoin="round" />
+
+  <!-- Summit Highlight Flare -->
+  <circle cx="256" cy="162" r="5" fill="#ffffff" opacity="0.9" />
+</svg>

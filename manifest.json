@@ -1,6 +1,6 @@
 {
-  "name": "Vita",
-  "short_name": "Vita",
+  "name": "Vita Life",
+  "short_name": "Vita Life",
   "description": "Your Personal AI Life Coach - Clarify your life goals, build a strategic long-term plan, and execute daily actions to achieve your highest vision.",
   "start_url": "/",
   "display": "standalone",
@@ -8,6 +8,12 @@
   "background_color": "#09090E",
   "theme_color": "#09090E",
   "icons": [
+    {
+      "src": "/vita_life_logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "/src/assets/images/apple_touch_icon_1784446544674.jpg",
       "sizes": "512x512",

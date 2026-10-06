@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Sparkles, CheckCircle2, ChevronRight, ArrowRight, RotateCcw,
   Zap, Compass, Shield, Target, Award, Calendar, Layers,
@@ -8,7 +8,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { SelectedAIPreference, UserProfile } from "../types";
 import { sound } from "../utils/soundEngine";
-import { DEFAULT_AI_COUNCIL_OPTIONS, generateGoalBreakdown, GoalBreakdownResult } from "../utils/aiPreferencesSync";
+import { DEFAULT_AI_COUNCIL_OPTIONS, generateGoalBreakdown, getAISuggestions, GoalBreakdownResult } from "../utils/aiPreferencesSync";
 
 interface AiPreferencesOnboardingModalProps {
   isOpen: boolean;
@@ -19,6 +19,7 @@ interface AiPreferencesOnboardingModalProps {
   currentSelectedAIs?: SelectedAIPreference[];
   isNewOrResetted?: boolean;
   theme?: "bright" | "dark";
+  initialStep?: 0 | 1 | 2 | 3 | 4;
   onSavePreferences: (selectedAIs: SelectedAIPreference[], age?: number) => Promise<void> | void;
 }
 
@@ -31,6 +32,7 @@ export default function AiPreferencesOnboardingModal({
   currentSelectedAIs,
   isNewOrResetted = false,
   theme = "dark",
+  initialStep,
   onSavePreferences
 }: AiPreferencesOnboardingModalProps) {
   const username = userName || currentUser?.username || currentUser?.name || "Explorer";
@@ -57,6 +59,7 @@ export default function AiPreferencesOnboardingModal({
   // 3 = Set Goals & Time Span + "Analyze Goal"
   // 4 = System Integration & Summary
   const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(() => {
+    if (initialStep !== undefined) return initialStep;
     return isTrulyNewUser ? 0 : 2;
   });
 
@@ -71,23 +74,38 @@ export default function AiPreferencesOnboardingModal({
     }
   };
 
-  // Keep step aligned if modal opens
+  const hasInitializedOpenRef = useRef(false);
+
+  // Keep step aligned strictly when modal transitions from closed to open
   useEffect(() => {
     if (isOpen) {
-      const welcomed = typeof window !== "undefined" && (
-        localStorage.getItem(`vita-user-welcomed-${userKey}`) === "true" ||
-        localStorage.getItem("vita-user-welcomed-global") === "true" ||
-        currentUser?.welcomeAcknowledged === true ||
-        currentUser?.isOnboarded === true ||
-        (Array.isArray(effectiveSelectedAIs) && effectiveSelectedAIs.length > 0)
-      );
-      if (!isNewOrResetted || welcomed) {
-        setStep(2);
-      } else {
-        setStep(0);
+      if (!hasInitializedOpenRef.current) {
+        hasInitializedOpenRef.current = true;
+        if (initialStep !== undefined) {
+          setStep(initialStep);
+        } else {
+          const welcomed = typeof window !== "undefined" && (
+            localStorage.getItem(`vita-user-welcomed-${userKey}`) === "true" ||
+            localStorage.getItem("vita-user-welcomed-global") === "true" ||
+            currentUser?.welcomeAcknowledged === true ||
+            currentUser?.isOnboarded === true ||
+            (Array.isArray(effectiveSelectedAIs) && effectiveSelectedAIs.length > 0)
+          );
+          if (!isNewOrResetted || welcomed) {
+            setStep(2);
+          } else {
+            setStep(0);
+          }
+        }
+
+        if (currentSelectedAIs && currentSelectedAIs.length > 0) {
+          setSelectedIds(currentSelectedAIs.map(a => a.aiId));
+        }
       }
+    } else {
+      hasInitializedOpenRef.current = false;
     }
-  }, [isOpen, isNewOrResetted, userKey, currentUser, effectiveSelectedAIs]);
+  }, [isOpen, initialStep, isNewOrResetted, userKey, currentUser]);
 
   // Age state
   const [age, setAge] = useState<number>(() => {
@@ -105,6 +123,9 @@ export default function AiPreferencesOnboardingModal({
   // State for goals, time spans, monthly roadmaps, and daily tasks
   const [toolsData, setToolsData] = useState<Record<string, {
     goal: string;
+    longTermGoal: string;
+    shortTermGoal: string;
+    customMonths: number;
     timeSpan: string;
     weeklyTarget: string;
     dailyTasks: string[];
@@ -116,13 +137,19 @@ export default function AiPreferencesOnboardingModal({
     const initial: Record<string, any> = {};
     DEFAULT_AI_COUNCIL_OPTIONS.forEach(opt => {
       const existing = effectiveSelectedAIs?.find(a => a.aiId === opt.aiId);
-      const defaultSpan = opt.defaultTimeSpan || "3 Months";
-      const goal = existing?.individualGoal || opt.defaultGoal;
-      const breakdown = generateGoalBreakdown(opt.aiId, opt.name, goal, defaultSpan, currentUser?.age || 26);
+      const suggestions = getAISuggestions(opt.aiId);
+      const customMonths = existing?.targetMonths || (existing?.targetHorizon ? parseInt(existing.targetHorizon, 10) : 0) || suggestions.defaultMonths || 3;
+      const longGoal = existing?.longTermGoal || existing?.individualGoal || opt.defaultGoal;
+      const shortGoal = existing?.shortTermGoal || suggestions.defaultShortTerm;
+      const timeSpan = `${customMonths} Months`;
+      const breakdown = generateGoalBreakdown(opt.aiId, opt.name, longGoal, customMonths, currentUser?.age || 26, shortGoal);
 
       initial[opt.aiId] = {
-        goal,
-        timeSpan: existing?.targetHorizon || defaultSpan,
+        goal: longGoal,
+        longTermGoal: longGoal,
+        shortTermGoal: shortGoal,
+        customMonths,
+        timeSpan,
         weeklyTarget: existing?.weeklyTarget || opt.defaultWeeklyTarget,
         dailyTasks: existing?.dailyTasks && existing.dailyTasks.length > 0 ? existing.dailyTasks : breakdown.dailyTasks,
         monthlyRoadmap: existing?.monthlyRoadmap || breakdown.monthlyRoadmap,
@@ -137,37 +164,38 @@ export default function AiPreferencesOnboardingModal({
   const [activeToolIndex, setActiveToolIndex] = useState<number>(0);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  const [newDailyTaskInput, setNewDailyTaskInput] = useState<string>("");
 
-  // Sync if incoming preferences change
-  useEffect(() => {
-    if (currentSelectedAIs && currentSelectedAIs.length > 0) {
-      setSelectedIds(currentSelectedAIs.map(a => a.aiId));
-      const updatedMap = { ...toolsData };
-      currentSelectedAIs.forEach(a => {
-        const defaultOpt = DEFAULT_AI_COUNCIL_OPTIONS.find(o => o.aiId === a.aiId);
-        const breakdown = generateGoalBreakdown(
-          a.aiId,
-          a.name,
-          a.individualGoal,
-          a.targetHorizon || defaultOpt?.defaultTimeSpan || "3 Months",
-          age
-        );
-        updatedMap[a.aiId] = {
-          goal: a.individualGoal,
-          timeSpan: a.targetHorizon || defaultOpt?.defaultTimeSpan || "3 Months",
-          weeklyTarget: a.weeklyTarget,
-          dailyTasks: a.dailyTasks && a.dailyTasks.length > 0 ? a.dailyTasks : breakdown.dailyTasks,
-          monthlyRoadmap: a.monthlyRoadmap || breakdown.monthlyRoadmap,
-          summaryAnalysis: breakdown.summaryAnalysis,
-          isAnalyzed: true,
-          isAnalyzing: false
-        };
-      });
-      setToolsData(updatedMap);
+  const selectedTools = useMemo(() => {
+    const list = selectedIds
+      .map(id => DEFAULT_AI_COUNCIL_OPTIONS.find(o => o.aiId === id))
+      .filter(Boolean) as typeof DEFAULT_AI_COUNCIL_OPTIONS;
+    if (list.length === 0) {
+      return [DEFAULT_AI_COUNCIL_OPTIONS[0]];
     }
-  }, [currentSelectedAIs]);
+    const seen = new Set<string>();
+    return list.filter(item => {
+      if (!item?.aiId || seen.has(item.aiId)) return false;
+      seen.add(item.aiId);
+      return true;
+    });
+  }, [selectedIds]);
 
-  if (!isOpen) return null;
+  const clampedToolIndex = Math.max(0, Math.min(activeToolIndex, selectedTools.length - 1));
+  const currentToolOption = selectedTools[clampedToolIndex] || selectedTools[0] || DEFAULT_AI_COUNCIL_OPTIONS[0];
+  const currentToolId = currentToolOption.aiId;
+  const currentToolSuggestions = getAISuggestions(currentToolId);
+  const currentToolState = toolsData[currentToolId] || {
+    goal: currentToolOption?.defaultGoal || "",
+    longTermGoal: currentToolOption?.defaultGoal || "",
+    shortTermGoal: currentToolSuggestions.defaultShortTerm || "",
+    customMonths: currentToolSuggestions.defaultMonths || 3,
+    timeSpan: `${currentToolSuggestions.defaultMonths || 3} Months`,
+    weeklyTarget: currentToolOption?.defaultWeeklyTarget || "",
+    dailyTasks: currentToolOption?.defaultDailyTasks || [],
+    monthlyRoadmap: [],
+    isAnalyzed: true
+  };
 
   const toggleToolSelection = (toolId: string) => {
     sound.playSubtleClick();
@@ -191,6 +219,10 @@ export default function AiPreferencesOnboardingModal({
       [toolId]: { ...prev[toolId], isAnalyzing: true }
     }));
 
+    const months = current.customMonths || 3;
+    const longGoal = current.longTermGoal || current.goal;
+    const shortGoal = current.shortTermGoal || "";
+
     try {
       const res = await fetch("/api/user/analyze-goal", {
         method: "POST",
@@ -198,8 +230,10 @@ export default function AiPreferencesOnboardingModal({
         body: JSON.stringify({
           toolId,
           toolName,
-          goal: current.goal,
-          timeSpan: current.timeSpan,
+          goal: longGoal,
+          shortTermGoal: shortGoal,
+          targetMonths: months,
+          timeSpan: `${months} Months`,
           age,
           username
         })
@@ -226,7 +260,7 @@ export default function AiPreferencesOnboardingModal({
     }
 
     // Fallback algorithmic breakdown
-    const fallback = generateGoalBreakdown(toolId, toolName, current.goal, current.timeSpan, age);
+    const fallback = generateGoalBreakdown(toolId, toolName, longGoal, months, age, shortGoal);
     setToolsData(prev => ({
       ...prev,
       [toolId]: {
@@ -248,7 +282,10 @@ export default function AiPreferencesOnboardingModal({
     const assembledPreferences: SelectedAIPreference[] = selectedIds.map(id => {
       const opt = DEFAULT_AI_COUNCIL_OPTIONS.find(o => o.aiId === id);
       const custom = toolsData[id];
-      const fallbackBreakdown = generateGoalBreakdown(id, opt?.name || id, custom?.goal || opt?.defaultGoal || "", custom?.timeSpan || "3 Months", age);
+      const targetMonths = custom?.customMonths || 3;
+      const longGoal = custom?.longTermGoal || custom?.goal || opt?.defaultGoal || "Master discipline";
+      const shortGoal = custom?.shortTermGoal || "";
+      const fallbackBreakdown = generateGoalBreakdown(id, opt?.name || id, longGoal, targetMonths, age, shortGoal);
 
       return {
         aiId: id,
@@ -257,9 +294,11 @@ export default function AiPreferencesOnboardingModal({
         specialty: opt?.specialty || "Autonomous development tool",
         category: opt?.category || "CORE",
         color: opt?.color || "from-amber-500 to-orange-600",
-        individualGoal: custom?.goal || opt?.defaultGoal || "Master discipline",
-        targetHorizon: custom?.timeSpan || "3 Months",
-        targetMonths: custom?.timeSpan?.includes("1 Month") ? 1 : custom?.timeSpan?.includes("6 Month") ? 6 : custom?.timeSpan?.includes("12") ? 12 : 3,
+        individualGoal: longGoal,
+        longTermGoal: longGoal,
+        shortTermGoal: shortGoal,
+        targetHorizon: `${targetMonths} Months`,
+        targetMonths: targetMonths,
         monthlyRoadmap: custom?.monthlyRoadmap && custom.monthlyRoadmap.length > 0 ? custom.monthlyRoadmap : fallbackBreakdown.monthlyRoadmap,
         weeklyTarget: custom?.weeklyTarget || opt?.defaultWeeklyTarget || "Complete weekly milestones",
         dailyTasks: custom?.dailyTasks && custom.dailyTasks.length > 0 ? custom.dailyTasks : fallbackBreakdown.dailyTasks,
@@ -281,20 +320,7 @@ export default function AiPreferencesOnboardingModal({
     }
   };
 
-  const selectedTools = selectedIds
-    .map(id => DEFAULT_AI_COUNCIL_OPTIONS.find(o => o.aiId === id))
-    .filter(Boolean) as typeof DEFAULT_AI_COUNCIL_OPTIONS;
-
-  const currentToolOption = selectedTools[activeToolIndex] || selectedTools[0];
-  const currentToolId = currentToolOption?.aiId || "fitness";
-  const currentToolState = toolsData[currentToolId] || {
-    goal: currentToolOption?.defaultGoal || "",
-    timeSpan: currentToolOption?.defaultTimeSpan || "3 Months",
-    weeklyTarget: currentToolOption?.defaultWeeklyTarget || "",
-    dailyTasks: currentToolOption?.defaultDailyTasks || [],
-    monthlyRoadmap: [],
-    isAnalyzed: true
-  };
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-xl overflow-y-auto">
@@ -361,7 +387,7 @@ export default function AiPreferencesOnboardingModal({
 
         {/* Modal Body */}
         <div className="p-6 sm:p-8 flex-1 overflow-y-auto space-y-6">
-          <AnimatePresence mode="wait">
+          <div className="w-full">
             {/* STAGE 0: VITA WELCOMES YOU & VITA MAN POPS UP */}
             {step === 0 && (
               <motion.div
@@ -592,11 +618,11 @@ export default function AiPreferencesOnboardingModal({
 
                 {/* Tool Selection Grid with Catchy Names */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {DEFAULT_AI_COUNCIL_OPTIONS.map((opt) => {
+                  {DEFAULT_AI_COUNCIL_OPTIONS.map((opt, idx) => {
                     const isSelected = selectedIds.includes(opt.aiId);
                     return (
                       <div
-                        key={opt.aiId}
+                        key={`${opt.aiId}-${idx}`}
                         onClick={() => toggleToolSelection(opt.aiId)}
                         className={`p-4 rounded-2xl border transition-all cursor-pointer select-none relative flex flex-col justify-between ${
                           isSelected
@@ -669,20 +695,11 @@ export default function AiPreferencesOnboardingModal({
                         setActiveToolIndex(0);
                         setStep(3);
                       }}
-                      className="px-3.5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      className="px-6 py-2.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-black font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                     >
-                      <span>Calibrate Goals</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={selectedIds.length === 0 || isSaving}
-                      onClick={handleSaveAndIntegrate}
-                      className="px-5 py-2.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-black font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                    >
-                      <Check className="w-4 h-4 text-black" />
-                      <span>{isSaving ? "Saving..." : "Confirm & Enter Dashboard"}</span>
+                      <Sparkles className="w-4 h-4 text-black" />
+                      <span>Proceed to Calibrate Goals</span>
+                      <ArrowRight className="w-4 h-4 text-black" />
                     </button>
                   </div>
                 </div>
@@ -690,9 +707,9 @@ export default function AiPreferencesOnboardingModal({
             )}
 
             {/* STAGE 3: GOALS & TIME SPAN CALIBRATION WITH INTELLIGENT ANALYSIS */}
-            {step === 3 && currentToolOption && (
+            {step === 3 && (
               <motion.div
-                key={`step-3-${currentToolId}`}
+                key="step-3"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -702,7 +719,7 @@ export default function AiPreferencesOnboardingModal({
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
                   {selectedTools.map((tool, idx) => (
                     <button
-                      key={tool.aiId}
+                      key={`${tool.aiId}-${idx}`}
                       type="button"
                       onClick={() => {
                         sound.playSubtleClick();
@@ -724,17 +741,23 @@ export default function AiPreferencesOnboardingModal({
                 </div>
 
                 {/* Active Tool Calibration Card */}
-                <div className="bg-black/40 border border-white/10 rounded-2xl p-6 space-y-6">
+                <div key={currentToolId} className="bg-black/40 border border-white/10 rounded-2xl p-6 space-y-6">
+                  {/* Tool Header */}
                   <div className="flex items-center justify-between border-b border-white/10 pb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-2xl">
                         {currentToolOption.avatar}
                       </div>
                       <div>
-                        <h3 className="text-base font-extrabold text-white tracking-tight">
-                          {currentToolOption.name}
-                        </h3>
-                        <p className="text-xs text-zinc-400">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-extrabold text-white tracking-tight">
+                            {currentToolOption.name}
+                          </h3>
+                          <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            {currentToolOption.category}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-400 mt-0.5">
                           {currentToolOption.specialty}
                         </p>
                       </div>
@@ -745,140 +768,349 @@ export default function AiPreferencesOnboardingModal({
                     </span>
                   </div>
 
-                  {/* Goal Input & Prompt Suggestions */}
+                  {/* 1. SHORT-TERM GOAL (Immediate 30-Day Milestone) */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center justify-between">
-                      <span>Primary Target Goal</span>
-                      <span className="text-[10px] text-zinc-500 normal-case">What do you want to achieve?</span>
+                    <label className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        Short-Term Goal (Month 1 Foundation)
+                      </span>
+                      <span className="text-[10px] text-zinc-400 normal-case">Immediate milestone to build momentum</span>
                     </label>
-                    <textarea
-                      rows={2}
-                      value={currentToolState.goal}
+                    <input
+                      type="text"
+                      value={currentToolState.shortTermGoal || ""}
                       onChange={(e) => {
                         const val = e.target.value;
                         setToolsData(prev => ({
                           ...prev,
-                          [currentToolId]: { ...prev[currentToolId], goal: val }
+                          [currentToolId]: { ...prev[currentToolId], shortTermGoal: val }
                         }));
                       }}
-                      placeholder={`State your primary goal for ${currentToolOption.name}...`}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-amber-400 transition"
+                      placeholder={`e.g. ${currentToolSuggestions.defaultShortTerm}`}
+                      className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 transition"
                     />
 
-                    {/* Quick Goal Suggestions */}
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {currentToolOption.goalSuggestions.map((sug, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => {
-                            sound.playSubtleClick();
-                            setToolsData(prev => ({
-                              ...prev,
-                              [currentToolId]: { ...prev[currentToolId], goal: sug }
-                            }));
-                          }}
-                          className="text-[10px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/5 hover:border-amber-500/30 transition text-left"
-                        >
-                          + {sug}
-                        </button>
-                      ))}
+                    {/* AI Short-Term Suggestions */}
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">
+                        AI Short-Term Suggestions (Click to apply):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {currentToolSuggestions.shortTerm.map((sug, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              sound.playSubtleClick();
+                              setToolsData(prev => ({
+                                ...prev,
+                                [currentToolId]: { ...prev[currentToolId], shortTermGoal: sug }
+                              }));
+                            }}
+                            className="text-[10px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-amber-500/10 text-zinc-300 hover:text-amber-300 border border-white/5 hover:border-amber-500/30 transition text-left cursor-pointer"
+                          >
+                            ⚡ {sug}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Time Span Selector */}
+                  {/* 2. LONG-TERM GOAL (Sovereign Horizon) */}
                   <div className="space-y-2 pt-2 border-t border-white/5">
-                    <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block">
-                      Target Time Span
+                    <label className="text-xs font-bold text-zinc-200 uppercase tracking-wider flex items-center justify-between">
+                      <span>Long-Term Vision Goal</span>
+                      <span className="text-[10px] text-zinc-500 normal-case">Apex transformation & ultimate objective</span>
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                      {[
-                        "1 Month",
-                        "3 Months",
-                        "6 Months",
-                        "12 Months",
-                        "24 Months"
-                      ].map(span => (
+                    <textarea
+                      rows={2}
+                      value={currentToolState.longTermGoal || currentToolState.goal || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setToolsData(prev => ({
+                          ...prev,
+                          [currentToolId]: {
+                            ...prev[currentToolId],
+                            longTermGoal: val,
+                            goal: val
+                          }
+                        }));
+                      }}
+                      placeholder={`State your long-term goal for ${currentToolOption.name}...`}
+                      className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-amber-400 transition"
+                    />
+
+                    {/* AI Long-Term Suggestions */}
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">
+                        AI Long-Term Suggestions (Click to apply):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {currentToolSuggestions.longTerm.map((sug, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              sound.playSubtleClick();
+                              setToolsData(prev => ({
+                                ...prev,
+                                [currentToolId]: {
+                                  ...prev[currentToolId],
+                                  longTermGoal: sug,
+                                  goal: sug
+                                }
+                              }));
+                            }}
+                            className="text-[10px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-amber-500/10 text-zinc-300 hover:text-amber-300 border border-white/5 hover:border-amber-500/30 transition text-left cursor-pointer"
+                          >
+                            🎯 {sug}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. CUSTOM NUMBER OF MONTHS TIMELINE */}
+                  <div className="space-y-3 pt-2 border-t border-white/5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-amber-400 uppercase tracking-wider block">
+                        Target Timeline (Custom Number of Months)
+                      </label>
+                      <span className="text-[11px] font-mono text-zinc-400">
+                        {currentToolState.customMonths || 3} Months (~{((currentToolState.customMonths || 3) * 30)} Days)
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-zinc-400">
+                      Choose or enter any custom duration. Your daily goals and monthly milestones will scale to this exact timeline.
+                    </p>
+
+                    {/* Numeric Stepper and Direct Input */}
+                    <div className="flex items-center gap-3 bg-black/50 border border-white/10 rounded-xl p-2 max-w-sm">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound.playSubtleClick();
+                          const current = currentToolState.customMonths || 3;
+                          const nextVal = Math.max(1, current - 1);
+                          setToolsData(prev => ({
+                            ...prev,
+                            [currentToolId]: {
+                              ...prev[currentToolId],
+                              customMonths: nextVal,
+                              timeSpan: `${nextVal} Months`
+                            }
+                          }));
+                        }}
+                        className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold flex items-center justify-center transition cursor-pointer text-sm"
+                      >
+                        -
+                      </button>
+
+                      <div className="flex-1 flex items-center justify-center gap-1.5">
+                        <input
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={currentToolState.customMonths || 3}
+                          onChange={(e) => {
+                            const parsed = parseInt(e.target.value, 10);
+                            const val = isNaN(parsed) ? 1 : Math.max(1, Math.min(60, parsed));
+                            setToolsData(prev => ({
+                              ...prev,
+                              [currentToolId]: {
+                                ...prev[currentToolId],
+                                customMonths: val,
+                                timeSpan: `${val} Months`
+                              }
+                            }));
+                          }}
+                          className="w-16 bg-white/5 border border-white/10 rounded-lg py-1 px-2 text-center text-base font-mono font-bold text-amber-400 focus:outline-none focus:border-amber-400"
+                        />
+                        <span className="text-xs font-semibold text-zinc-300">Months</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound.playSubtleClick();
+                          const current = currentToolState.customMonths || 3;
+                          const nextVal = Math.min(60, current + 1);
+                          setToolsData(prev => ({
+                            ...prev,
+                            [currentToolId]: {
+                              ...prev[currentToolId],
+                              customMonths: nextVal,
+                              timeSpan: `${nextVal} Months`
+                            }
+                          }));
+                        }}
+                        className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold flex items-center justify-center transition cursor-pointer text-sm"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Quick Duration Buttons (flexible range of custom months) */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[10px] text-zinc-500 font-semibold mr-1">Quick Select:</span>
+                      {[1, 2, 3, 4, 5, 6, 8, 9, 12, 18, 24].map(num => (
                         <button
-                          key={span}
+                          key={num}
                           type="button"
                           onClick={() => {
                             sound.playSubtleClick();
                             setToolsData(prev => ({
                               ...prev,
-                              [currentToolId]: { ...prev[currentToolId], timeSpan: span }
+                              [currentToolId]: {
+                                ...prev[currentToolId],
+                                customMonths: num,
+                                timeSpan: `${num} Months`
+                              }
                             }));
                           }}
-                          className={`py-2 px-2.5 rounded-xl text-xs font-semibold transition text-center ${
-                            currentToolState.timeSpan.includes(span)
+                          className={`py-1 px-2.5 rounded-lg text-xs font-mono transition cursor-pointer ${
+                            (currentToolState.customMonths || 3) === num
                               ? "bg-amber-400 text-black font-bold shadow"
                               : "bg-white/5 hover:bg-white/10 text-zinc-400 border border-white/10"
                           }`}
                         >
-                          {span}
+                          {num}m
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Analyze Goal Action */}
-                  <div className="pt-2 flex items-center justify-between">
+                  {/* 4. ANALYZE & GENERATE DAILY TASKS ACTION */}
+                  <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-white/5">
                     <button
                       type="button"
                       disabled={currentToolState.isAnalyzing}
                       onClick={() => handleAnalyzeGoal(currentToolId, currentToolOption.name)}
-                      className="px-5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-2 transition cursor-pointer"
+                      className="px-5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-2 transition cursor-pointer disabled:opacity-50"
                     >
                       {currentToolState.isAnalyzing ? (
                         <div className="w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                       )}
-                      <span>Analyze Goal with Vita Man</span>
+                      <span>Analyze & Generate Daily Actions with AI</span>
                     </button>
 
                     <span className="text-[11px] text-zinc-400">
-                      Creates monthly milestones & daily checkboxes
+                      Calculates milestones & daily actions tailored to {currentToolState.customMonths || 3} months
                     </span>
                   </div>
 
-                  {/* Goal Analysis Breakdown Display */}
+                  {/* Goal Analysis Breakdown & Daily Actions Display */}
                   {currentToolState.monthlyRoadmap && currentToolState.monthlyRoadmap.length > 0 && (
                     <div className="mt-4 p-4 rounded-xl bg-black/60 border border-white/10 space-y-4">
                       {currentToolState.summaryAnalysis && (
-                        <p className="text-xs text-amber-300/90 italic leading-relaxed">
-                          "{currentToolState.summaryAnalysis}"
-                        </p>
+                        <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                          <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider block mb-1">
+                            Vita AI Strategic Assessment:
+                          </span>
+                          <p className="text-xs text-amber-200/90 italic leading-relaxed">
+                            "{currentToolState.summaryAnalysis}"
+                          </p>
+                        </div>
                       )}
 
-                      {/* Monthly Roadmaps */}
+                      {/* Daily Checkbox Tasks (Feeds Mountain of Life + Daily Summary) */}
                       <div>
-                        <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block mb-2">
-                          Monthly Milestones ({currentToolState.timeSpan}):
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          {currentToolState.monthlyRoadmap.slice(0, 3).map((item, idx) => (
-                            <div key={idx} className="p-2.5 rounded-lg bg-white/5 border border-white/5">
-                              <span className="text-[10px] font-bold text-amber-400 block">{item.title}</span>
-                              <p className="text-[11px] text-zinc-300 mt-0.5 line-clamp-2">{item.focusMilestone}</p>
-                            </div>
-                          ))}
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
+                            <CheckSquare className="w-3.5 h-3.5 text-amber-400" />
+                            Daily Checkbox Actions (Feeds Daily Dashboard):
+                          </span>
+                          <span className="text-[10px] text-zinc-400">
+                            {currentToolState.dailyTasks?.length || 0} tasks configured
+                          </span>
                         </div>
-                      </div>
 
-                      {/* Daily Checkbox Tasks */}
-                      <div>
-                        <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block mb-2">
-                          Daily Checkbox Actions (Feeds Mountain of Life + Daily Summary):
-                        </span>
                         <div className="space-y-1.5">
-                          {currentToolState.dailyTasks.map((task, tIdx) => (
-                            <div key={tIdx} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/5 text-xs text-zinc-200">
+                          {currentToolState.dailyTasks?.map((task, tIdx) => (
+                            <div key={tIdx} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/5 text-xs text-zinc-200 group">
                               <CheckSquare className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
                               <span className="flex-1">{task}</span>
                               <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                                +120m Alt
+                                +120m Alt · +40 XP
                               </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sound.playSubtleClick();
+                                  const filtered = currentToolState.dailyTasks.filter((_, idx) => idx !== tIdx);
+                                  setToolsData(prev => ({
+                                    ...prev,
+                                    [currentToolId]: { ...prev[currentToolId], dailyTasks: filtered }
+                                  }));
+                                }}
+                                className="text-zinc-500 hover:text-red-400 text-xs px-1.5 py-0.5 transition cursor-pointer"
+                                title="Remove task"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Add Custom Daily Task Input */}
+                        <div className="mt-2 flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={newDailyTaskInput}
+                            onChange={(e) => setNewDailyTaskInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && newDailyTaskInput.trim()) {
+                                e.preventDefault();
+                                sound.playSubtleClick();
+                                const updated = [...(currentToolState.dailyTasks || []), newDailyTaskInput.trim()];
+                                setToolsData(prev => ({
+                                  ...prev,
+                                  [currentToolId]: { ...prev[currentToolId], dailyTasks: updated }
+                                }));
+                                setNewDailyTaskInput("");
+                              }
+                            }}
+                            placeholder="+ Add custom daily task..."
+                            className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-amber-400"
+                          />
+                          <button
+                            type="button"
+                            disabled={!newDailyTaskInput.trim()}
+                            onClick={() => {
+                              if (newDailyTaskInput.trim()) {
+                                sound.playSubtleClick();
+                                const updated = [...(currentToolState.dailyTasks || []), newDailyTaskInput.trim()];
+                                setToolsData(prev => ({
+                                  ...prev,
+                                  [currentToolId]: { ...prev[currentToolId], dailyTasks: updated }
+                                }));
+                                setNewDailyTaskInput("");
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-lg transition disabled:opacity-40 cursor-pointer"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Monthly Roadmaps Scaled to Custom Months */}
+                      <div>
+                        <span className="text-[11px] font-bold text-zinc-200 uppercase tracking-wider block mb-2">
+                          Milestones Roadmap ({currentToolState.customMonths || 3} Months Target):
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {currentToolState.monthlyRoadmap.slice(0, 6).map((item, idx) => (
+                            <div key={idx} className="p-2.5 rounded-lg bg-white/5 border border-white/5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-amber-400 block">{item.title}</span>
+                                <span className="text-[9px] font-mono text-zinc-400">{item.target}</span>
+                              </div>
+                              <p className="text-[11px] text-zinc-300 mt-1 line-clamp-2">{item.focusMilestone}</p>
                             </div>
                           ))}
                         </div>
@@ -898,7 +1130,7 @@ export default function AiPreferencesOnboardingModal({
                         setStep(2);
                       }
                     }}
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition"
+                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>{activeToolIndex > 0 ? "Previous Tool" : "Back (Tool Selection)"}</span>
@@ -911,7 +1143,7 @@ export default function AiPreferencesOnboardingModal({
                         sound.playSubtleClick();
                         setActiveToolIndex(activeToolIndex + 1);
                       }}
-                      className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition"
+                      className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition cursor-pointer"
                     >
                       <span>Next Tool: {selectedTools[activeToolIndex + 1]?.name}</span>
                       <ArrowRight className="w-4 h-4" />
@@ -923,7 +1155,7 @@ export default function AiPreferencesOnboardingModal({
                         sound.playTingsha();
                         setStep(4);
                       }}
-                      className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-black font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-amber-500/20 hover:from-amber-300 hover:to-orange-400 transition flex items-center gap-2"
+                      className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-black font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-amber-500/20 hover:from-amber-300 hover:to-orange-400 transition flex items-center gap-2 cursor-pointer"
                     >
                       <span>Review System Integration</span>
                       <ArrowRight className="w-4 h-4" />
@@ -984,33 +1216,43 @@ export default function AiPreferencesOnboardingModal({
                       Integrated Development Tools:
                     </span>
                     <div className="space-y-2.5">
-                      {selectedTools.map(tool => {
+                      {selectedTools.map((tool, idx) => {
                         const data = toolsData[tool.aiId];
+                        const months = data?.customMonths || 3;
+                        const shortGoal = data?.shortTermGoal;
+                        const longGoal = data?.longTermGoal || data?.goal || tool.defaultGoal;
                         return (
                           <div
-                            key={tool.aiId}
-                            className="p-3.5 rounded-xl bg-white/5 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                            key={`${tool.aiId}-${idx}`}
+                            className="p-3.5 rounded-xl bg-white/5 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                           >
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-black/40 flex items-center justify-center text-lg">
+                            <div className="flex items-start sm:items-center gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-black/40 flex items-center justify-center text-xl flex-shrink-0">
                                 {tool.avatar}
                               </div>
-                              <div>
-                                <h5 className="text-xs font-bold text-white tracking-tight">
-                                  {tool.name}
-                                </h5>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <h5 className="text-xs font-bold text-white tracking-tight">
+                                    {tool.name}
+                                  </h5>
+                                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                    {months} Months Target
+                                  </span>
+                                </div>
+                                {shortGoal && (
+                                  <p className="text-[11px] text-amber-300/80 line-clamp-1">
+                                    <span className="font-semibold text-amber-400">Month 1:</span> {shortGoal}
+                                  </p>
+                                )}
                                 <p className="text-[11px] text-zinc-400 line-clamp-1">
-                                  {data?.goal || tool.defaultGoal}
+                                  <span className="font-semibold text-zinc-300">Vision:</span> {longGoal}
                                 </p>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-3 text-right">
-                              <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                                {data?.timeSpan || tool.defaultTimeSpan}
-                              </span>
-                              <span className="text-[10px] font-mono text-zinc-400">
-                                {data?.dailyTasks?.length || 3} daily checkboxes
+                            <div className="flex items-center gap-2 self-end sm:self-center">
+                              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                {data?.dailyTasks?.length || 3} daily actions
                               </span>
                             </div>
                           </div>
@@ -1062,7 +1304,7 @@ export default function AiPreferencesOnboardingModal({
                 </div>
               </motion.div>
             )}
-          </AnimatePresence>
+          </div>
         </div>
       </motion.div>
     </div>

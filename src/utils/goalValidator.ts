@@ -67,11 +67,14 @@ export function validateLongTermGoal(
     };
   }
 
-  // Check Timeline span (Minimum 3 months)
+  // Check Timeline span (Must be at least 1 month)
   if (timelineMonths !== undefined) {
     let months = typeof timelineMonths === "number" ? timelineMonths : parseInt(String(timelineMonths), 10);
     if (isNaN(months) && typeof timelineMonths === "string") {
-      if (timelineMonths.includes("1 Month") || timelineMonths.includes("30 Days") || timelineMonths.includes("2 Weeks")) {
+      const match = timelineMonths.match(/(\d+)\s*month/i);
+      if (match) {
+        months = parseInt(match[1], 10);
+      } else if (timelineMonths.includes("1 Month") || timelineMonths.includes("30 Days") || timelineMonths.includes("2 Weeks")) {
         months = 1;
       } else if (timelineMonths.includes("2 Month")) {
         months = 2;
@@ -82,13 +85,13 @@ export function validateLongTermGoal(
       }
     }
 
-    if (months < 3) {
+    if (months < 1) {
       return {
         isValid: false,
         isExamPrep: false,
         isTooShort: true,
-        errorMessage: "A long-term goal must have a minimum duration of 3 months (90 days).",
-        guidanceMessage: "Objectives shorter than 3 months belong as your Monthly Summit Milestone or Daily Tasks. Please select a horizon of at least 3 months for your long-term vision."
+        errorMessage: "Target timeline must be at least 1 month.",
+        guidanceMessage: "Please choose a horizon of at least 1 month for your strategic goal calibration."
       };
     }
   }
@@ -101,7 +104,10 @@ export function validateLongTermGoal(
 }
 
 export const TIMELINE_OPTIONS = [
-  { id: "3_months", label: "3 Months", months: 3, subtitle: "Minimum Strategic Horizon · Quarterly Transformation" },
+  { id: "1_month", label: "1 Month", months: 1, subtitle: "Rapid 30-Day Sprint · Focused Baseline" },
+  { id: "2_months", label: "2 Months", months: 2, subtitle: "60-Day Foundation · Habit Consolidation" },
+  { id: "3_months", label: "3 Months", months: 3, subtitle: "Quarterly Horizon · Core Transformation" },
+  { id: "4_months", label: "4 Months", months: 4, subtitle: "Custom 120-Day Horizon · Progressive Capacity" },
   { id: "6_months", label: "6 Months", months: 6, subtitle: "Semiannual Horizon · Compound Discipline" },
   { id: "9_months", label: "9 Months", months: 9, subtitle: "Three-Quarter Horizon · Structural Leap" },
   { id: "12_months", label: "12 Months (1 Year)", months: 12, subtitle: "Annual Master Horizon · Recommended" },

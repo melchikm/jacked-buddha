@@ -1,4 +1,4 @@
-import { DBState, MountainState, SelectedAIPreference, UserProfile, ScheduledTask, TodayPlan, Goal } from "../types";
+import { DBState, MountainState, SelectedAIPreference, UserProfile, ScheduledTask, TodayPlan, Goal, UserLongTermGoals } from "../types";
 
 export const DEFAULT_AI_COUNCIL_OPTIONS: {
   aiId: string;
@@ -14,19 +14,173 @@ export const DEFAULT_AI_COUNCIL_OPTIONS: {
   defaultDailyTasks: string[];
 }[] = [
   {
-    aiId: "fitness",
-    name: "Titan",
-    avatar: "🏋️",
-    specialty: "High-performance kinetic physique, progressive overload, biomechanics & conditioning",
-    category: "BODY",
-    color: "from-red-500 to-rose-700",
-    defaultGoal: "Forge an athletic, muscular physique and reach sub-13% body fat",
+    aiId: "spark",
+    name: "Spark",
+    avatar: "✨",
+    specialty: "Your AI creativity coach — ignites ideas, suggests exercises, and helps overcome blocks",
+    category: "Creativity & Expression",
+    color: "from-amber-400 to-orange-500",
+    defaultGoal: "Develop a short story from concept to final draft over the coming months, building a consistent creative writing habit.",
+    defaultTimeSpan: "3 Months",
+    goalSuggestions: [
+      "Write and complete a short story",
+      "Build a creative portfolio",
+      "Draft 500 words of creative writing daily",
+      "Compose an original audio piece or screenplay outline"
+    ],
+    defaultWeeklyTarget: "Complete 3 creative writing sessions and revise outline",
+    defaultDailyTasks: [
+      "✍️ Free-write for 20 minutes",
+      "📖 Read a short story for inspiration",
+      "📝 Write 300 words on current chapter"
+    ]
+  },
+  {
+    aiId: "pulse",
+    name: "Pulse",
+    avatar: "🤍",
+    specialty: "Your AI health guide — builds workout plans, tracks habits, and powers daily vitality",
+    category: "Health & Fitness",
+    color: "from-rose-500 to-red-600",
+    defaultGoal: "Build peak physical vitality, athletic conditioning, and clean metabolic nutrition.",
+    defaultTimeSpan: "3 Months",
+    goalSuggestions: [
+      "Hit 10k steps daily & clean eating",
+      "Build muscle & run 5k with endurance",
+      "Forge athletic physique and reach sub-13% body fat",
+      "Consistent 5x/week heavy strength training & clean protein"
+    ],
+    defaultWeeklyTarget: "Complete 5 dedicated workout sessions and hit nutrition goals",
+    defaultDailyTasks: [
+      "🏋️ 45-Minute Heavy Workout & Movement Session",
+      "🥗 Hit 175g+ Clean Protein & Nutrient Intake",
+      "💧 Drink 3.5L Water & Complete Mobility Stretches"
+    ]
+  },
+  {
+    aiId: "zenith",
+    name: "Zenith",
+    avatar: "🧠",
+    specialty: "Your AI mindfulness mentor — guides meditation, manages stress, and restores focus",
+    category: "Mind & Mindfulness",
+    color: "from-indigo-400 to-purple-600",
+    defaultGoal: "Master daily mindfulness, deep emotional equilibrium, and calm mental stillness.",
+    defaultTimeSpan: "3 Months",
+    goalSuggestions: [
+      "Daily 15-minute meditation and breathwork",
+      "Digital detox & evening stillness before bed",
+      "Master Vipassana meditation without missing a day",
+      "Achieve 7.5+ hours restorative sleep every night"
+    ],
+    defaultWeeklyTarget: "Maintain 7 days of daily stillness and 1 digital rest evening",
+    defaultDailyTasks: [
+      "🧘 15-Minute morning mindfulness meditation",
+      "📵 Screen cut-off 45 minutes before sleep",
+      "☀️ 10-Minute outdoor grounding and sunlight"
+    ]
+  },
+  {
+    aiId: "forge",
+    name: "Forge",
+    avatar: "🔨",
+    specialty: "Your AI career strategist — plans skill development, suggests resources, and accelerates impact",
+    category: "Career & Skills",
+    color: "from-blue-500 to-indigo-600",
+    defaultGoal: "Prepare for CAT exam 2026, find best university for MBA and improve personal brand.",
     defaultTimeSpan: "6 Months",
     goalSuggestions: [
-      "Forge an athletic, muscular physique and reach sub-13% body fat",
-      "Consistent 5x/week heavy strength training & 180g protein target",
-      "Rehabilitate joint posture, mobility, and cardiovascular stamina",
-      "Calisthenics mastery: 15 clean pull-ups, muscle-up, and core stability"
+      "Prepare for CAT exam 2026 which is on november end, and find best university to study for MBA and improve my personal brand",
+      "Master full-stack engineering & build a flagship production portfolio",
+      "Scale professional career leverage and double technical output",
+      "Complete 15 hours of deliberate deep study and quantitative synthesis weekly"
+    ],
+    defaultWeeklyTarget: "Complete 15 hours of study, mock tests, and brand building",
+    defaultDailyTasks: [
+      "🎯 60-Minute deep focus study or strategic project sprint",
+      "📚 Complete 1 chapter of quantitative or analytical practice",
+      "🤝 1 Strategic networking outreach or brand milestone"
+    ]
+  },
+  {
+    aiId: "bloom",
+    name: "Bloom",
+    avatar: "🤝",
+    specialty: "Your AI relationship advisor — helps you build meaningful connections, deepen empathy, and communicate with presence",
+    category: "Relationships & Connection",
+    color: "from-pink-400 to-rose-500",
+    defaultGoal: "Deepen authentic bonds with loved ones, cultivate genuine empathy, and communicate with intention.",
+    defaultTimeSpan: "3 Months",
+    goalSuggestions: [
+      "Deepen family bonds & call parents weekly",
+      "Build a thriving mastermind circle of trusted peers",
+      "Active listening and phone-free dinner conversations",
+      "Express daily gratitude to key people in life"
+    ],
+    defaultWeeklyTarget: "Have 2 meaningful long-form dialogues and 1 social connection",
+    defaultDailyTasks: [
+      "💬 Send 1 thoughtful check-in message to a friend or mentor",
+      "👂 Practice active listening in all conversations today",
+      "💖 Acknowledge someone with genuine appreciation"
+    ]
+  },
+  {
+    aiId: "compass",
+    name: "Compass",
+    avatar: "🧭",
+    specialty: "Your AI financial navigator — guides budgeting, saving strategies, and smart investments",
+    category: "Finance & Wealth",
+    color: "from-emerald-400 to-green-600",
+    defaultGoal: "Build complete financial sovereignty, strategic budgeting, and automated investment compounding.",
+    defaultTimeSpan: "6 Months",
+    goalSuggestions: [
+      "Save $10,000 emergency fund in high-yield savings",
+      "Master personal investment, ETF dollar-cost averaging & budget weekly",
+      "Audit all recurring expenses and save 40%+ of monthly income",
+      "Build automated dividend and asset growth portfolio"
+    ],
+    defaultWeeklyTarget: "Review cashflow, verify zero unnecessary expenses, and log investments",
+    defaultDailyTasks: [
+      "📊 Log daily expenditures and check budget targets",
+      "🚫 Zero impulsive non-essential spending",
+      "📈 Read 15 minutes of financial intelligence or market analysis"
+    ]
+  },
+  {
+    aiId: "quest",
+    name: "Quest",
+    avatar: "🎯",
+    specialty: "Your AI habit builder — designs routines, tracks consistency, and turns goals into daily wins",
+    category: "Habits & Discipline",
+    color: "from-amber-500 to-orange-600",
+    defaultGoal: "build a winter arc routine ,from mornig to night",
+    defaultTimeSpan: "3 Months",
+    goalSuggestions: [
+      "build a winter arc routine ,from mornig to night",
+      "Wake up at 6 AM, cold shower & immediate deep work",
+      "Execute 66-day uninterrupted habit transformation",
+      "Eliminate mindless scrolling and social media during peak hours"
+    ],
+    defaultWeeklyTarget: "Maintain 100% daily winter arc habit checklist 7 days straight",
+    defaultDailyTasks: [
+      "⏰ 06:00 AM wake up & morning hydration protocol",
+      "⚡ Execute morning winter arc movement block",
+      "📋 Complete daily habit checklist before 21:00"
+    ]
+  },
+  // Legacy aliases for backward compatibility
+  {
+    aiId: "fitness",
+    name: "Pulse",
+    avatar: "🤍",
+    specialty: "Your AI health guide — builds workout plans, tracks habits, and powers daily vitality",
+    category: "Health & Fitness",
+    color: "from-red-500 to-rose-700",
+    defaultGoal: "Build peak physical conditioning, strength, and longevity",
+    defaultTimeSpan: "3 Months",
+    goalSuggestions: [
+      "Hit 10k steps daily & clean eating",
+      "Build muscle & run 5k with endurance",
+      "Forge athletic physique and reach sub-13% body fat"
     ],
     defaultWeeklyTarget: "Complete 5 heavy workouts & hit protein target daily",
     defaultDailyTasks: [
@@ -40,21 +194,18 @@ export const DEFAULT_AI_COUNCIL_OPTIONS: {
     name: "Nourish",
     avatar: "🥗",
     specialty: "Precision metabolic fueling, high-protein optimization, macros & cellular vitality",
-    category: "NUTRITION",
+    category: "Health & Fitness",
     color: "from-emerald-400 to-teal-600",
     defaultGoal: "Zero ultra-processed food and optimal daily micronutrient balance",
     defaultTimeSpan: "3 Months",
     goalSuggestions: [
       "Zero ultra-processed food and optimal daily micronutrient balance",
-      "Hit exact 2,400 kcal & 180g protein daily with clean whole foods",
-      "16:8 Intermittent Fasting for metabolic flexibility and focus",
-      "Eliminate refined sugar and alcohol for 90 consecutive days"
+      "Hit exact 2,400 kcal & 180g protein daily with clean whole foods"
     ],
     defaultWeeklyTarget: "Maintain 100% clean whole-food nutrition 6 days this week",
     defaultDailyTasks: [
       "🍳 Cook or assemble 2 whole-food high-protein meals",
-      "🚫 Zero refined sugar, liquid calories, or processed snacks",
-      "📊 Log daily macronutrients and hydration"
+      "🚫 Zero refined sugar, liquid calories, or processed snacks"
     ]
   },
   {
@@ -62,25 +213,41 @@ export const DEFAULT_AI_COUNCIL_OPTIONS: {
     name: "Kintsugi",
     avatar: "⚡",
     specialty: "Nervous system rejuvenation, sleep architecture, and stress relief",
-    category: "RECOVERY",
+    category: "Mind & Mindfulness",
     color: "from-indigo-400 to-purple-600",
     defaultGoal: "Consistently achieve 7.5+ hours sleep with 85%+ recovery score",
     defaultTimeSpan: "3 Months",
     goalSuggestions: [
       "Consistently achieve 7.5+ hours sleep with 85%+ recovery score",
-      "Master circadian rhythm: bedtime before 10:30 PM & morning sunlight",
-      "Nervous system down-regulation with sauna, cold plunges, and breathwork",
-      "Zero screens 45 minutes before sleep for maximum REM density"
+      "Master circadian rhythm: bedtime before 10:30 PM & morning sunlight"
     ],
     defaultWeeklyTarget: "Achieve 80%+ average weekly sleep & nervous recovery",
     defaultDailyTasks: [
       "☀️ Morning direct sunlight exposure within 30 minutes of waking",
-      "📵 Night screen cut-off 45 minutes before bed",
-      "🧘 10-Minute evening breathwork & decompression"
+      "📵 Night screen cut-off 45 minutes before bed"
     ]
   },
   {
     aiId: "career",
+    name: "Forge",
+    avatar: "🔨",
+    specialty: "Your AI career strategist — plans skill development, suggests resources, and accelerates impact",
+    category: "Career & Skills",
+    color: "from-slate-500 to-slate-800",
+    defaultGoal: "Scale professional leverage, land executive leadership or high-ticket consulting",
+    defaultTimeSpan: "6 Months",
+    goalSuggestions: [
+      "Scale professional leverage, land executive leadership or high-ticket consulting",
+      "Execute high-impact strategic initiatives to double professional earnings"
+    ],
+    defaultWeeklyTarget: "Ship 2 high-leverage career deliverables & 1 networking outreach",
+    defaultDailyTasks: [
+      "🎯 60-Minute protected block on primary strategic career deliverable",
+      "🤝 1 High-value strategic connection or industry dialogue"
+    ]
+  },
+  {
+    aiId: "career_legacy",
     name: "Vanguard",
     avatar: "💼",
     specialty: "Corporate trajectory, high-leverage milestones, strategic leadership & income growth",
@@ -336,6 +503,374 @@ export interface GoalBreakdownResult {
   xpPerTask: number;
 }
 
+export interface AISuggestionsResult {
+  shortTerm: string[];
+  longTerm: string[];
+  defaultShortTerm: string;
+  defaultMonths: number;
+}
+
+export function getAISuggestions(toolId: string): AISuggestionsResult {
+  const map: Record<string, AISuggestionsResult> = {
+    spark: {
+      defaultShortTerm: "Free-write 20 minutes daily and complete plot outline",
+      defaultMonths: 3,
+      shortTerm: [
+        "Free-write for 20 minutes daily without self-editing",
+        "Complete character profiles and story plot outline",
+        "Read a short story for inspiration every evening",
+        "Write 300 words on current chapter consistently"
+      ],
+      longTerm: [
+        "Write and complete a short story from concept to polished draft",
+        "Build a creative portfolio of 5 flagship pieces",
+        "Publish an original screenplay, novel, or creative manuscript",
+        "Establish an unshakeable daily creative expression ritual"
+      ]
+    },
+    pulse: {
+      defaultShortTerm: "Establish 5x weekly workout consistency and hit clean nutrition",
+      defaultMonths: 3,
+      shortTerm: [
+        "Hit 10,000 steps daily & eliminate liquid calories",
+        "Complete 5 dedicated workout sessions weekly",
+        "Drink 3.5L of water and do 10 minutes of mobility daily",
+        "Hit 175g+ clean protein baseline every day"
+      ],
+      longTerm: [
+        "Build peak physical conditioning, strength, and longevity",
+        "Forge an athletic, muscular physique and reach sub-13% body fat",
+        "Build muscle, run a sub-25 minute 5k, and optimize metabolic health",
+        "Achieve optimal biological vitality, joint durability, and energy"
+      ]
+    },
+    zenith: {
+      defaultShortTerm: "15 minutes of morning stillness meditation and evening screen cut-off",
+      defaultMonths: 3,
+      shortTerm: [
+        "15-Minute morning mindfulness meditation every day",
+        "Screen cut-off 45 minutes before sleep for deep recovery",
+        "10-Minute outdoor grounding and sunlight walk",
+        "Practice 3-breath pause before reacting in high-stress moments"
+      ],
+      longTerm: [
+        "Master daily mindfulness, deep emotional equilibrium, and calm mental stillness",
+        "Achieve 7.5+ hours restorative sleep with 85%+ recovery score",
+        "Cultivate unshakeable mental clarity, focus, and inner peace",
+        "Zero chronic stress and deep neurological rejuvenation"
+      ]
+    },
+    forge: {
+      defaultShortTerm: "Lock in 90-minute daily deep focus study/career sprint",
+      defaultMonths: 6,
+      shortTerm: [
+        "Complete diagnostic practice tests & log error patterns in study journal",
+        "Lock in 90-minute morning focused study block 6 days a week",
+        "Ship 1 high-impact career deliverable or portfolio case study",
+        "Complete 1 strategic networking outreach or mentor dialogue weekly"
+      ],
+      longTerm: [
+        "Prepare for CAT exam 2026 which is on november end, and find best university to study for MBA and improve my personal brand",
+        "Master full-stack engineering & build a flagship production portfolio",
+        "Score in the 99th percentile and earn admission to a premier MBA program",
+        "Scale professional leverage, double income, and establish thought leadership"
+      ]
+    },
+    bloom: {
+      defaultShortTerm: "Send 1 thoughtful connection note daily & call family weekly",
+      defaultMonths: 3,
+      shortTerm: [
+        "Send 1 thoughtful check-in message to a friend or mentor daily",
+        "Practice phone-free active listening during all meals and dates",
+        "Acknowledge key collaborators with genuine appreciation",
+        "Schedule 1 high-quality in-person or long-form conversation each week"
+      ],
+      longTerm: [
+        "Deepen authentic bonds with loved ones and communicate with presence",
+        "Build a thriving mastermind circle of trusted, high-caliber peers",
+        "Cultivate profound emotional intelligence, empathy, and listening mastery",
+        "Foster relationships characterized by mutual trust, vulnerability, and joy"
+      ]
+    },
+    compass: {
+      defaultShortTerm: "Audit all subscriptions, cap impulsive spend & automate 35% savings",
+      defaultMonths: 6,
+      shortTerm: [
+        "Audit all recurring expenses and save 40%+ of monthly income",
+        "Establish $10,000 emergency liquid treasury reserve",
+        "Automate monthly index fund / ETF dollar-cost averaging",
+        "Log daily expenditures and review weekly cashflow scorecard"
+      ],
+      longTerm: [
+        "Build complete financial sovereignty, strategic budgeting, and wealth compounding",
+        "Grow a diversified investment portfolio generating sustainable passive income",
+        "Achieve complete financial runway sovereignty and location independence",
+        "Master smart allocation, tax optimization, and long-term asset building"
+      ]
+    },
+    quest: {
+      defaultShortTerm: "Wake up at 06:00 AM, morning movement & execute daily habit checklist",
+      defaultMonths: 3,
+      shortTerm: [
+        "06:00 AM wake up & immediate hydration and sunlight protocol",
+        "Execute morning winter arc movement block without hesitation",
+        "Complete daily habit checklist before 21:00 without skipping",
+        "Zero mindless social media scrolling during daytime hours"
+      ],
+      longTerm: [
+        "build a winter arc routine ,from mornig to night",
+        "Execute 66-day uninterrupted habit transformation and build bulletproof discipline",
+        "Transform colder months into a season of intense, focused growth",
+        "Anchor daily habits in purpose and achieve effortless routine mastery"
+      ]
+    },
+    fitness: {
+      defaultShortTerm: "Lock in 5x weekly heavy lifting consistency & 180g daily protein baseline",
+      defaultMonths: 4,
+      shortTerm: [
+        "Lock in 5x weekly heavy lifting consistency & 180g daily protein baseline",
+        "Master perfect form on compound lifts (squat, bench, deadlift) with zero injury",
+        "Complete 30-day baseline conditioning challenge & 10,000 daily steps",
+        "Achieve 10 clean unassisted pull-ups and 2-minute dead hang"
+      ],
+      longTerm: [
+        "Forge an athletic, muscular physique and reach sub-13% body fat",
+        "Add 10kg lean functional muscle while maintaining sub-12% body fat",
+        "Rehabilitate joint posture, mobility, and cardiovascular stamina",
+        "Calisthenics mastery: 15 clean pull-ups, muscle-up, and core stability"
+      ]
+    },
+    nutrition: {
+      defaultShortTerm: "Eliminate refined sugar & cook 100% whole food dinners for 30 days",
+      defaultMonths: 3,
+      shortTerm: [
+        "Eliminate refined sugar & cook 100% whole food dinners for 30 days",
+        "Establish 16:8 intermittent fasting window with zero snacking residue",
+        "Hit 180g clean protein & 3.5L hydration target 6 days every week",
+        "Automate weekly Sunday meal prep to guarantee 100% adherence"
+      ],
+      longTerm: [
+        "Zero ultra-processed food and optimal daily micronutrient balance",
+        "Hit exact 2,400 kcal & 180g protein daily with clean whole foods",
+        "Achieve permanent metabolic flexibility and peak daily energy stability",
+        "Eliminate refined sugar and alcohol for sustained longevity"
+      ]
+    },
+    recovery: {
+      defaultShortTerm: "Fix 10:30 PM sleep schedule & eliminate screens 45 mins before bed",
+      defaultMonths: 2,
+      shortTerm: [
+        "Fix 10:30 PM sleep schedule & eliminate screens 45 mins before bed",
+        "Morning outdoor sunlight protocol within 30 minutes of waking every day",
+        "Establish 10-minute evening parasympathetic breathwork & foam rolling",
+        "Track weekly HRV and achieve 80%+ sleep consistency score"
+      ],
+      longTerm: [
+        "Consistently achieve 7.5+ hours sleep with 85%+ recovery score",
+        "Master circadian rhythm: bedtime before 10:30 PM & morning sunlight",
+        "Nervous system down-regulation with sauna, cold plunges, and breathwork",
+        "Deep neurological restoration and zero chronic stress fatigue"
+      ]
+    },
+    career: {
+      defaultShortTerm: "Deliver core high-leverage initiative & secure direct leadership review",
+      defaultMonths: 6,
+      shortTerm: [
+        "Deliver core high-leverage initiative & secure direct leadership review",
+        "Conduct 5 strategic executive coffee chats or mentor syncs this month",
+        "Protect 2-hour morning deep work sprint daily with calendar lock",
+        "Draft and publish 2 high-impact technical or domain thought-pieces"
+      ],
+      longTerm: [
+        "Scale professional leverage, land executive leadership or high-ticket consulting",
+        "Execute high-impact strategic initiatives to double professional earnings",
+        "Build sovereign personal brand and thought leadership in domain",
+        "Transition into Principal / Director tier role with equity upside"
+      ]
+    },
+    mba: {
+      defaultShortTerm: "Complete diagnostic practice test & log every error in review journal",
+      defaultMonths: 5,
+      shortTerm: [
+        "Complete diagnostic practice test & log every error in review journal",
+        "Master critical reasoning foundations and 50 timed quantitative drills",
+        "Lock in 90-minute morning study block 6 days every week",
+        "Score 700+ benchmark on initial full-length mock simulation"
+      ],
+      longTerm: [
+        "Score 740+ on GMAT Focus / GRE or secure top-tier MBA fellowship",
+        "Master executive financial modeling, valuation, and strategic case analysis",
+        "Synthesize 50 foundational business and economics mental models",
+        "Build elite corporate finance and venture analysis competence"
+      ]
+    },
+    finance: {
+      defaultShortTerm: "Audit all subscriptions, cap discretionary spending & automate 35% savings",
+      defaultMonths: 6,
+      shortTerm: [
+        "Audit all subscriptions, cap discretionary spending & automate 35% savings",
+        "Establish 6-month emergency reserve in high-yield liquid treasury",
+        "Deploy automated monthly index fund / ETF dollar-cost averaging",
+        "Construct real-time net worth and monthly cashflow tracking dashboard"
+      ],
+      longTerm: [
+        "Build $250k+ diversified investment portfolio generating passive dividends",
+        "Achieve complete financial runway sovereignty and location independence",
+        "Scale active savings rate to 50%+ through asymmetric income expansion",
+        "Master real estate syndication and sovereign tax optimization"
+      ]
+    },
+    buddha_core: {
+      defaultShortTerm: "Establish 20-minute daily morning Vipassana meditation without missing a day",
+      defaultMonths: 3,
+      shortTerm: [
+        "Establish 20-minute daily morning Vipassana meditation without missing a day",
+        "Read 1 page of Stoic or Dharma wisdom every morning before checking phone",
+        "Implement 3-breath pause before reacting in high-pressure conversations",
+        "Attend weekend silent half-day retreat or nature contemplation"
+      ],
+      longTerm: [
+        "Unshakeable emotional equilibrium, zero reactive anger, and daily presence",
+        "Complete a 7-day silent meditation retreat and deepen samadhi focus",
+        "Live with total mental clarity, equanimity, and compassionate discipline",
+        "Master breath-led nervous regulation in all challenging life scenarios"
+      ]
+    },
+    productivity: {
+      defaultShortTerm: "Enforce zero-distraction morning deep sprints & nightly 3-outcome planning",
+      defaultMonths: 3,
+      shortTerm: [
+        "Enforce zero-distraction morning deep sprints & nightly 3-outcome planning",
+        "Eliminate non-essential meetings and batch email to 2 designated windows",
+        "Track weekly deep work hours with target of 25+ uninterrupted hours",
+        "Complete 30-day digital minimalism cleanse (zero doom-scrolling)"
+      ],
+      longTerm: [
+        "Operate at 10x output velocity with zero burnout or mental fatigue",
+        "Design an autonomous weekly execution rhythm and life operating system",
+        "Achieve complete calendar sovereignty and protected creative time",
+        "Lead high-velocity projects with effortless operational precision"
+      ]
+    },
+    music: {
+      defaultShortTerm: "Finish and export 2 complete original track demos this month",
+      defaultMonths: 4,
+      shortTerm: [
+        "Finish and export 2 complete original track demos this month",
+        "Practice 45 minutes of instrument technique & ear training 5 days a week",
+        "Build a custom library of 20 sound-design presets and sample patches",
+        "Analyze arrangement structure of 5 reference master recordings"
+      ],
+      longTerm: [
+        "Produce and release a 5-track polished EP across global platforms",
+        "Master professional audio mixing, vocal processing, and mastering chain",
+        "Perform a live original 45-minute electronic/acoustic set",
+        "Establish a signature sonic identity and dedicated listener community"
+      ]
+    },
+    cinema: {
+      defaultShortTerm: "Shoot and edit a 90-second cinematic visual sequence with color grading",
+      defaultMonths: 4,
+      shortTerm: [
+        "Shoot and edit a 90-second cinematic visual sequence with color grading",
+        "Study 3 master film sequences and break down lighting and lens choices",
+        "Write screenplay treatment and shot list for short narrative film",
+        "Master manual cinema camera exposure, frame rates, and color profiles"
+      ],
+      longTerm: [
+        "Direct and screen a festival-ready short narrative film or documentary",
+        "Master advanced visual storytelling, DaVinci Resolve color pipelines",
+        "Build a professional cinematography and directing showreel",
+        "Collaborate with international indie creators on funded visual works"
+      ]
+    },
+    faith: {
+      defaultShortTerm: "Commit to 15-minute sacred morning prayer and daily scripture reading",
+      defaultMonths: 3,
+      shortTerm: [
+        "Commit to 15-minute sacred morning prayer and daily scripture reading",
+        "Practice evening examen of conscience and gratitude journaling daily",
+        "Engage in weekly fellowship, community service, or temple reflection",
+        "Memorize 12 foundational sacred verses or wisdom teachings"
+      ],
+      longTerm: [
+        "Live in deep, unbroken communion with God, spiritual purpose, and grace",
+        "Lead family and community with servant leadership and unwavering integrity",
+        "Complete a sacred pilgrimage or intentional spiritual mountain retreat",
+        "Cultivate boundless humility, generosity, and inner peace"
+      ]
+    },
+    hair: {
+      defaultShortTerm: "Establish 100% consistent scalp micro-circulation and clinical tonic routine",
+      defaultMonths: 3,
+      shortTerm: [
+        "Establish 100% consistent scalp micro-circulation and clinical tonic routine",
+        "Eliminate hot-water follicle stress and adopt cold rinse technique",
+        "Supplement daily biotin, zinc, saw palmetto, and collagen peptides",
+        "5-minute evening relaxing scalp acupressure massage every night"
+      ],
+      longTerm: [
+        "Achieve maximum terminal hair density, scalp health, and aesthetic confidence",
+        "Reverse early thinning through clinical protocol and hormonal balance",
+        "Maintain pristine aesthetic grooming and vibrant facial skin clarity",
+        "Solidify a permanent, zero-effort daily bio-aesthetic grooming ritual"
+      ]
+    },
+    travel: {
+      defaultShortTerm: "Plan complete logistics, gear list, and route for next high-altitude trek",
+      defaultMonths: 4,
+      shortTerm: [
+        "Plan complete logistics, gear list, and route for next high-altitude trek",
+        "Complete 3 weekend weighted conditioning hikes with full expedition pack",
+        "Learn conversational phrases in local language of upcoming expedition",
+        "Audit travel gear, ultralight shelter, and emergency medical kit"
+      ],
+      longTerm: [
+        "Summit a major international alpine peak or complete a 100km wilderness traverse",
+        "Explore 3 remote sovereign global wilderness destinations every year",
+        "Master off-grid survival, alpine navigation, and wilderness first aid",
+        "Document transformative world expeditions through writing and photography"
+      ]
+    },
+    nature: {
+      defaultShortTerm: "Commit to 45 minutes outdoors in natural sunlight and trees daily",
+      defaultMonths: 3,
+      shortTerm: [
+        "Commit to 45 minutes outdoors in natural sunlight and trees daily",
+        "Spend 1 full day every weekend completely immersed in wild nature",
+        "Practice daily earthing / barefoot grounding on grass or forest soil",
+        "Learn local native trees, flora, and seasonal bird migration patterns"
+      ],
+      longTerm: [
+        "Achieve total cellular alignment with natural seasons and solar cycles",
+        "Build an off-grid sanctuary, cabin, or permaculture garden retreat",
+        "Lead backcountry nature expeditions and inspire conservation steward ethics",
+        "Deep biological resilience forged through all weather and wild terrain"
+      ]
+    }
+  };
+
+  const found = map[toolId];
+  if (found) return found;
+
+  return {
+    defaultShortTerm: `Establish Month 1 baseline consistency and daily rhythm for ${toolId}`,
+    defaultMonths: 3,
+    shortTerm: [
+      `Establish Month 1 baseline consistency and daily rhythm for ${toolId}`,
+      `Complete 30-day foundational execution sprint with zero zero-days`,
+      `Track daily metric inputs and review weekly progression log`,
+      `Master core fundamentals and eliminate operational friction points`
+    ],
+    longTerm: [
+      `Master advanced capabilities and achieve sovereign excellence in ${toolId}`,
+      `Build effortless daily compounding habits with lasting compounding returns`,
+      `Consolidate long-term transformation into an unshakeable lifestyle baseline`,
+      `Reach apex summit milestone and expand personal leverage`
+    ]
+  };
+}
+
 /**
  * Intelligent goal breakdown engine by Vita Man:
  * Breaks down any user goal across their chosen time span into:
@@ -347,20 +882,29 @@ export function generateGoalBreakdown(
   toolId: string,
   toolName: string,
   userGoal: string,
-  timeSpan: string = "3 Months",
-  age?: number
+  timeSpan: string | number = "3 Months",
+  age?: number,
+  shortTermGoal?: string
 ): GoalBreakdownResult {
-  // Parse target months
+  // Parse target months - supports ANY custom number of months (1, 2, 4, 5, 7, 9, etc.)
   let months = 3;
-  if (timeSpan.includes("1 Month")) months = 1;
-  else if (timeSpan.includes("3 Month")) months = 3;
-  else if (timeSpan.includes("6 Month")) months = 6;
-  else if (timeSpan.includes("12 Month") || timeSpan.includes("1 Year")) months = 12;
-  else if (timeSpan.includes("24 Month") || timeSpan.includes("2 Year")) months = 24;
+  if (typeof timeSpan === "number" && timeSpan > 0) {
+    months = Math.max(1, Math.round(timeSpan));
+  } else {
+    const match = String(timeSpan).match(/(\d+)\s*month/i);
+    if (match) {
+      months = Math.max(1, parseInt(match[1], 10));
+    } else if (String(timeSpan).includes("Year") || String(timeSpan).includes("12")) {
+      months = 12;
+    } else if (String(timeSpan).includes("24")) {
+      months = 24;
+    }
+  }
 
   const cleanGoal = userGoal.trim() || `Master ${toolName} capabilities`;
+  const cleanShortTerm = (shortTermGoal || "").trim();
 
-  // Build monthly roadmap based on target span
+  // Build monthly roadmap tailored dynamically to the exact custom number of months
   const roadmap: { month: number; title: string; target: string; focusMilestone: string }[] = [];
   
   const stageTemplates = [
@@ -369,21 +913,36 @@ export function generateGoalBreakdown(
     { label: "First Summit & Metric Benchmark", focus: "Reach primary milestone checkpoint and calibrate performance." },
     { label: "Efficiency & System Integration", focus: "Streamline friction points and automate recurring workflows." },
     { label: "Advanced Velocity & Peak Output", focus: "Operate at high leverage with zero cognitive residue." },
-    { label: "Grand Mastery & Sovereign Summit", focus: "Consolidate long-term transformation and achieve the apex vision." }
+    { label: "Grand Mastery & Sovereign Summit", focus: "Consolidate long-term transformation and achieve the apex vision." },
+    { label: "Autonomous Compounding", focus: "System runs effortlessly with high compound returns on daily habits." },
+    { label: "Domain Expansion & Resilience", focus: "Handle external shocks and test boundaries of capacity." },
+    { label: "Apex Leadership & Synthesis", focus: "Mentor others or expand scope into generational impact." },
+    { label: "Universal Life Sovereignty", focus: "Complete consolidation of mastery across mind, craft, and body." }
   ];
 
-  const visibleMonths = Math.min(months, 6);
+  const visibleMonths = Math.min(months, 12);
   for (let i = 1; i <= visibleMonths; i++) {
-    const stage = stageTemplates[Math.min(i - 1, stageTemplates.length - 1)];
+    const stageIdx = Math.min(
+      Math.floor(((i - 1) / Math.max(1, visibleMonths - 1)) * (stageTemplates.length - 1)),
+      stageTemplates.length - 1
+    );
+    const stage = stageTemplates[stageIdx] || stageTemplates[0];
+    const isFirstMonth = i === 1;
+    const isFinalMonth = i === visibleMonths;
+
     roadmap.push({
       month: i,
-      title: `Month ${i}: ${stage.label}`,
-      target: `Progress toward: "${cleanGoal.slice(0, 45)}..."`,
-      focusMilestone: stage.focus
+      title: `Month ${i}: ${isFinalMonth ? "Apex Sovereign Summit" : stage.label}`,
+      target: isFirstMonth && cleanShortTerm 
+        ? `Month 1 Target: "${cleanShortTerm.slice(0, 48)}"` 
+        : `Progress toward: "${cleanGoal.slice(0, 45)}..."`,
+      focusMilestone: isFirstMonth && cleanShortTerm 
+        ? `Short-Term Milestone: ${cleanShortTerm}` 
+        : stage.focus
     });
   }
 
-  // Generate daily checkbox tasks tailored to the tool
+  // Generate daily checkbox tasks tailored to the tool and short/long term goals
   let dailyTasks: string[] = [];
   if (toolId === "fitness") {
     dailyTasks = [
@@ -477,8 +1036,9 @@ export function generateGoalBreakdown(
     ];
   }
 
-  const ageNote = age ? `At age ${age}, your biological velocity and strategic compounding curve are in optimal alignment.` : "";
-  const summaryAnalysis = `Vita Man has structured "${toolName}" into a ${timeSpan} horizon. By committing to ${dailyTasks.length} daily actions, you will compound directly toward Month 1 foundation and your ${months}-month summit. ${ageNote}`;
+  const ageNote = age ? `At age ${age}, your biological velocity and compounding curve are in prime alignment.` : "";
+  const shortTermSnippet = cleanShortTerm ? ` Anchored by short-term milestone: "${cleanShortTerm}".` : "";
+  const summaryAnalysis = `Vita Man has structured "${toolName}" into a custom ${months}-Month (${months * 30}-day) trajectory.${shortTermSnippet} By executing these ${dailyTasks.length} daily actions on a daily basis, you establish immediate Month 1 momentum and ascend toward your ${months}-month summit. ${ageNote}`;
 
   return {
     monthlyRoadmap: roadmap,
@@ -510,15 +1070,18 @@ function toMountainCategory(catOrId: string): "BODY" | "CREATE" | "BUILD" | "CAR
  */
 export function generateDailyPlanFromAiGoals(
   selectedAIs: SelectedAIPreference[],
-  userName: string = "Explorer"
+  userName: string = "Explorer",
+  longTermGoals?: UserLongTermGoals
 ): { todayPlan: TodayPlan; scheduledTasks: ScheduledTask[] } {
   const tasks: ScheduledTask[] = [];
   const now = Date.now();
+  const actualToday = new Date().toISOString().split("T")[0];
 
   // 1. Circadian Ignition & Morning Light
   tasks.push({
     id: `plan-${now}-wake`,
     time: "06:30 AM",
+    dateStr: actualToday,
     title: "Circadian Ignition & Cellular Hydration",
     detail: "1.0L pure water + electrolyte pinch, 10 min natural sunlight exposure to set circadian pacing.",
     duration: "30 min",
@@ -538,26 +1101,32 @@ export function generateDailyPlanFromAiGoals(
 
   // 2. Morning Physical / Movement Protocol
   if (fitnessAI) {
+    const months = fitnessAI.targetMonths || 3;
+    const horizon = fitnessAI.targetHorizon || `${months} Months Target`;
     tasks.push({
       id: `plan-${now}-fitness`,
       time: "07:15 AM",
+      dateStr: actualToday,
       title: `🏋️ [${fitnessAI.name}] Kinetic Hypertrophy & Strength Session`,
-      detail: `Progressive overload workout calibrated to: "${fitnessAI.individualGoal}". Target: ${fitnessAI.weeklyTarget}.`,
+      detail: `${fitnessAI.dailyTasks?.[0] || "Progressive overload workout"} calibrated to: "${fitnessAI.individualGoal}". Target: ${fitnessAI.weeklyTarget}.`,
       duration: "75 min",
       completed: false,
       category: "body",
-      longTermAlignment: fitnessAI.individualGoal
+      longTermAlignment: `Aligned with ${horizon}: ${fitnessAI.individualGoal}`
     });
   } else if (groomAI) {
+    const months = groomAI.targetMonths || 3;
+    const horizon = groomAI.targetHorizon || `${months} Months Target`;
     tasks.push({
       id: `plan-${now}-groom`,
       time: "07:15 AM",
+      dateStr: actualToday,
       title: `🧴 [${groomAI.name}] Bio-Aesthetics & Grooming Calibration`,
       detail: `${groomAI.dailyTasks?.[0] || "Scalp and skin hydration treatment"} aligned with: "${groomAI.individualGoal}".`,
       duration: "25 min",
       completed: false,
       category: "body",
-      longTermAlignment: groomAI.individualGoal
+      longTermAlignment: `Aligned with ${horizon}: ${groomAI.individualGoal}`
     });
   }
 
@@ -565,6 +1134,7 @@ export function generateDailyPlanFromAiGoals(
   tasks.push({
     id: `plan-${now}-nutrition`,
     time: "08:35 AM",
+    dateStr: actualToday,
     title: "Sovereign High-Protein Fueling & Mindful Breakfast",
     detail: "High-protein breakfast (45-55g whole protein) + hydration to optimize sustained prefrontal focus.",
     duration: "30 min",
@@ -575,37 +1145,46 @@ export function generateDailyPlanFromAiGoals(
 
   // 4. Primary High-Cognitive Deep Work Sprint (Morning Peak Window)
   if (codeAI) {
+    const months = codeAI.targetMonths || 3;
+    const horizon = codeAI.targetHorizon || `${months} Months Target`;
     tasks.push({
       id: `plan-${now}-code`,
       time: "09:15 AM",
+      dateStr: actualToday,
       title: `💻 [${codeAI.name}] Core Architecture & Systems Engineering`,
-      detail: `Uninterrupted deep coding sprint on core product modules. Goal: "${codeAI.individualGoal}". Weekly target: ${codeAI.weeklyTarget}.`,
+      detail: `${codeAI.dailyTasks?.[0] || "Uninterrupted deep coding sprint on core product modules"}. Goal: "${codeAI.individualGoal}". Weekly target: ${codeAI.weeklyTarget}.`,
       duration: "120 min",
       completed: false,
       category: "build",
-      longTermAlignment: codeAI.individualGoal
+      longTermAlignment: `Aligned with ${horizon}: ${codeAI.individualGoal}`
     });
   } else if (careerAI) {
+    const months = careerAI.targetMonths || 3;
+    const horizon = careerAI.targetHorizon || `${months} Months Target`;
     tasks.push({
       id: `plan-${now}-career`,
       time: "09:15 AM",
+      dateStr: actualToday,
       title: `⚡ [${careerAI.name}] Executive Strategy & High-Leverage Sprint`,
-      detail: `Direct strategic execution on highest priority initiative. Goal: "${careerAI.individualGoal}". Target: ${careerAI.weeklyTarget}.`,
+      detail: `${careerAI.dailyTasks?.[0] || "Direct strategic execution on highest priority initiative"}. Goal: "${careerAI.individualGoal}". Target: ${careerAI.weeklyTarget}.`,
       duration: "90 min",
       completed: false,
       category: "career",
-      longTermAlignment: careerAI.individualGoal
+      longTermAlignment: `Aligned with ${horizon}: ${careerAI.individualGoal}`
     });
   } else if (mbaAI) {
+    const months = mbaAI.targetMonths || 3;
+    const horizon = mbaAI.targetHorizon || `${months} Months Target`;
     tasks.push({
       id: `plan-${now}-mba`,
       time: "09:15 AM",
+      dateStr: actualToday,
       title: `🧠 [${mbaAI.name}] Timed Cognitive Mastery & Critical Reasoning`,
-      detail: `Intensive timed problem set + error log synthesis. Goal: "${mbaAI.individualGoal}". Weekly target: ${mbaAI.weeklyTarget}.`,
+      detail: `${mbaAI.dailyTasks?.[0] || "Intensive timed problem set + error log synthesis"}. Goal: "${mbaAI.individualGoal}". Weekly target: ${mbaAI.weeklyTarget}.`,
       duration: "90 min",
       completed: false,
       category: "cognitive",
-      longTermAlignment: mbaAI.individualGoal
+      longTermAlignment: `Aligned with ${horizon}: ${mbaAI.individualGoal}`
     });
   }
 
@@ -613,6 +1192,7 @@ export function generateDailyPlanFromAiGoals(
   tasks.push({
     id: `plan-${now}-lunch`,
     time: "12:30 PM",
+    dateStr: actualToday,
     title: "Mindful Lunch & 20m Sunlight Walk",
     detail: "Whole food nutrition & outdoor stroll to clear cognitive residue and down-regulate sympathetic tone.",
     duration: "45 min",
@@ -623,56 +1203,89 @@ export function generateDailyPlanFromAiGoals(
 
   // 6. Secondary Creative / Technical / Career Block (Afternoon Pacing)
   if (creativeAI) {
+    const months = creativeAI.targetMonths || 3;
+    const horizon = creativeAI.targetHorizon || `${months} Months Target`;
     tasks.push({
       id: `plan-${now}-creative`,
       time: "02:00 PM",
+      dateStr: actualToday,
       title: `🎵 [${creativeAI.name}] Sonic Composition & Sound Design Sprint`,
-      detail: `Dedicated creative flow state block: "${creativeAI.individualGoal}". Arrangement & audio polish: ${creativeAI.weeklyTarget}.`,
+      detail: `${creativeAI.dailyTasks?.[0] || "Dedicated creative flow state block"}: "${creativeAI.individualGoal}". Arrangement: ${creativeAI.weeklyTarget}.`,
       duration: "90 min",
       completed: false,
       category: "create",
-      longTermAlignment: creativeAI.individualGoal
+      longTermAlignment: `Aligned with ${horizon}: ${creativeAI.individualGoal}`
     });
   } else if (careerAI && codeAI) {
+    const months = careerAI.targetMonths || 3;
+    const horizon = careerAI.targetHorizon || `${months} Months Target`;
     tasks.push({
       id: `plan-${now}-career-sec`,
       time: "02:00 PM",
+      dateStr: actualToday,
       title: `⚡ [${careerAI.name}] Executive Synthesis & Milestone Push`,
-      detail: `Cross-functional deliverables and organizational alignment for: "${careerAI.individualGoal}".`,
+      detail: `${careerAI.dailyTasks?.[1] || "Cross-functional deliverables and organizational alignment"} for: "${careerAI.individualGoal}".`,
       duration: "75 min",
       completed: false,
       category: "career",
-      longTermAlignment: careerAI.individualGoal
+      longTermAlignment: `Aligned with ${horizon}: ${careerAI.individualGoal}`
     });
   } else if (mbaAI && !tasks.some(t => t.id.includes("mba"))) {
+    const months = mbaAI.targetMonths || 3;
+    const horizon = mbaAI.targetHorizon || `${months} Months Target`;
     tasks.push({
       id: `plan-${now}-mba-sec`,
       time: "02:00 PM",
+      dateStr: actualToday,
       title: `🧠 [${mbaAI.name}] Analytical Quant Problem Set & Review`,
-      detail: `Timed quantitative drill and question breakdown for: "${mbaAI.individualGoal}".`,
+      detail: `${mbaAI.dailyTasks?.[0] || "Timed quantitative drill and question breakdown"} for: "${mbaAI.individualGoal}".`,
       duration: "60 min",
       completed: false,
       category: "cognitive",
-      longTermAlignment: mbaAI.individualGoal
+      longTermAlignment: `Aligned with ${horizon}: ${mbaAI.individualGoal}`
     });
   }
 
+  // Any other active selected AIs not yet scheduled
+  selectedAIs.forEach((otherAi, oIdx) => {
+    const alreadyMapped = tasks.some(t => t.title.includes(`[${otherAi.name}]`));
+    if (!alreadyMapped) {
+      const months = otherAi.targetMonths || 3;
+      const horizon = otherAi.targetHorizon || `${months} Months Target`;
+      tasks.push({
+        id: `plan-${now}-other-${otherAi.aiId}`,
+        time: oIdx % 2 === 0 ? "03:45 PM" : "05:00 PM",
+        dateStr: actualToday,
+        title: `${otherAi.avatar || "🎯"} [${otherAi.name}] ${otherAi.dailyTasks?.[0] || otherAi.individualGoal}`,
+        detail: `Focused session on "${otherAi.individualGoal}". Short-term focus: ${otherAi.shortTermGoal || otherAi.weeklyTarget || "Daily mastery"}.`,
+        duration: "45 min",
+        completed: false,
+        category: (otherAi.category || "build").toLowerCase(),
+        longTermAlignment: `Aligned with ${horizon}: ${otherAi.individualGoal}`
+      });
+    }
+  });
+
   // 7. Evening Zen / Stillness Sanctuary
   if (zenAI) {
+    const months = zenAI.targetMonths || 3;
+    const horizon = zenAI.targetHorizon || `${months} Months Target`;
     tasks.push({
       id: `plan-${now}-zen`,
       time: "06:30 PM",
+      dateStr: actualToday,
       title: `🧘 [${zenAI.name}] Vipassana Breath Meditation & Stillness`,
-      detail: `25-minute conscious breath observation and posture stillness. Target: "${zenAI.individualGoal}". Parasympathetic reset.`,
+      detail: `${zenAI.dailyTasks?.[0] || "25-minute conscious breath observation and posture stillness"}. Target: "${zenAI.individualGoal}". Parasympathetic reset.`,
       duration: "35 min",
       completed: false,
       category: "zen",
-      longTermAlignment: zenAI.individualGoal
+      longTermAlignment: `Aligned with ${horizon}: ${zenAI.individualGoal}`
     });
   } else {
     tasks.push({
       id: `plan-${now}-zen-def`,
       time: "06:30 PM",
+      dateStr: actualToday,
       title: "Evening Twilight Decompression & Diaphragmatic Breath",
       detail: "Active nervous system reset, posture recovery, and mental stillness after high-output day.",
       duration: "30 min",
@@ -684,15 +1297,18 @@ export function generateDailyPlanFromAiGoals(
 
   // 8. Evening Treasury Audit & Capital Discipline
   if (financeAI) {
+    const months = financeAI.targetMonths || 3;
+    const horizon = financeAI.targetHorizon || `${months} Months Target`;
     tasks.push({
       id: `plan-${now}-finance`,
       time: "08:15 PM",
+      dateStr: actualToday,
       title: `💎 [${financeAI.name}] Treasury Audit & Zero-Waste Verification`,
-      detail: `Audit day expenditures, verify zero impulsive capital outflow, review compound reserve towards: "${financeAI.individualGoal}".`,
+      detail: `${financeAI.dailyTasks?.[0] || "Audit day expenditures, verify zero impulsive capital outflow"} towards: "${financeAI.individualGoal}".`,
       duration: "25 min",
       completed: false,
       category: "finance",
-      longTermAlignment: financeAI.individualGoal
+      longTermAlignment: `Aligned with ${horizon}: ${financeAI.individualGoal}`
     });
   }
 
@@ -700,6 +1316,7 @@ export function generateDailyPlanFromAiGoals(
   tasks.push({
     id: `plan-${now}-sleep`,
     time: "09:45 PM",
+    dateStr: actualToday,
     title: "Digital Sunset & Deep Sleep Architecture",
     detail: "Complete screen cut-off, dim amber lighting, reflection on daily wins across selected AI council goals.",
     duration: "30 min",
@@ -711,32 +1328,147 @@ export function generateDailyPlanFromAiGoals(
   const aiNamesList = selectedAIs.map(a => a.name).join(", ");
   const recommendations = [
     `Front-load high-demand cognitive sprint for ${selectedAIs[0]?.name || "primary goal"} during morning prefrontal peak.`,
-    `Ensure adequate nutritional fueling and hydration to sustain energy for ${selectedAIs[1]?.name || "secondary targets"}.`,
+    `Execute each calibrated daily goal with disciplined focus on your custom timeline.`,
     `Protect the evening digital sunset and stillness buffer to ensure optimal neuro-recovery.`
   ];
 
   const todayPlan: TodayPlan = {
-    focus: `Sovereign Day for ${userName}: Execute ${aiNamesList} with razor-sharp intent.`,
-    planningScore: 94,
+    focus: `Sovereign Day for ${userName}: Execute ${aiNamesList || "custom-length goals"} with razor-sharp intent.`,
+    planningScore: 95,
     planningScoreBreakdown: {
       balance: 96,
-      cognitivePacing: 92,
+      cognitivePacing: 94,
       physicalFeasibility: 95,
-      soulRecovery: 93
+      soulRecovery: 94
     },
     aiRecommendations: recommendations,
     wins: [
       `AI Council goals active for ${userName}`,
-      `High-leverage time blocks calibrated with realistic durations`
+      `High-leverage time blocks calibrated with realistic durations and custom horizons`
     ],
     risks: [
       "Avoid multi-tasking across distinct cognitive domains; commit fully to each block."
     ],
-    suggestions: selectedAIs.map(ai => `[${ai.name}] Target: ${ai.weeklyTarget} · Milestone: ${ai.individualGoal}`),
-    balanceScore: 90
+    suggestions: selectedAIs.map(ai => {
+      const months = ai.targetMonths || 3;
+      const horizon = ai.targetHorizon || `${months} Months Target`;
+      return `[${ai.name}] ${horizon} · Target: ${ai.weeklyTarget} · Goal: ${ai.individualGoal}`;
+    }),
+    balanceScore: 92
   };
 
   return { todayPlan, scheduledTasks: tasks };
+}
+
+export interface ActionableDailyGoal {
+  id: string;
+  aiId: string;
+  aiName: string;
+  aiIcon: string;
+  title: string;
+  horizon: string;
+  targetMonths: number;
+  longTermGoal: string;
+  shortTermGoal?: string;
+  suggestedTime: string;
+  suggestedDuration: string;
+  category: string;
+  completed: boolean;
+}
+
+/**
+ * Extracts and synthesizes actionable daily goals derived from the user's
+ * custom-length long-term goals (from selectedAIs and longTermGoals).
+ * Automatically formats each goal with its custom horizon badge and suggested time block.
+ */
+export function extractDailyActionableGoals(dbState: DBState): ActionableDailyGoal[] {
+  const results: ActionableDailyGoal[] = [];
+  const selectedAIs = dbState?.selectedAIs || [];
+
+  const defaultTimes = ["07:15 AM", "09:15 AM", "02:00 PM", "06:30 PM", "08:15 PM"];
+  const defaultDurations = ["60 min", "90 min", "45 min", "30 min", "25 min"];
+
+  // 1. Process active selectedAIs
+  selectedAIs.forEach((ai, aIdx) => {
+    const months = ai.targetMonths || (ai.targetHorizon ? parseInt(ai.targetHorizon) : 3) || 3;
+    const horizon = ai.targetHorizon || `${months} Months Target`;
+    const longGoal = ai.individualGoal || ai.longTermGoal || `Master ${ai.name}`;
+    const shortGoal = ai.shortTermGoal || "";
+
+    // If dailyTasks are empty, generate them via domain breakdown
+    let tasks: string[] = Array.isArray(ai.dailyTasks) && ai.dailyTasks.length > 0 ? ai.dailyTasks : [];
+    if (tasks.length === 0) {
+      const breakdown = generateGoalBreakdown(ai.aiId, ai.name, longGoal, months, 28, shortGoal);
+      tasks = breakdown.dailyTasks;
+    }
+
+    tasks.forEach((task, tIdx) => {
+      const dgId = `act-${ai.aiId}-${tIdx}`;
+      const isCompleted = (dbState?.aiDailyGoals || []).some(
+        g => (g.id === dgId || g.id.includes(ai.aiId) || g.type === ai.aiId) && 
+             (g.title.toLowerCase().includes(task.toLowerCase().slice(0, 20)) || task.toLowerCase().includes(g.title.toLowerCase().slice(0, 20))) &&
+             g.completed
+      );
+
+      results.push({
+        id: dgId,
+        aiId: ai.aiId,
+        aiName: ai.name,
+        aiIcon: ai.avatar || "🎯",
+        title: task,
+        horizon,
+        targetMonths: months,
+        longTermGoal: longGoal,
+        shortTermGoal: shortGoal,
+        suggestedTime: defaultTimes[(aIdx + tIdx) % defaultTimes.length],
+        suggestedDuration: defaultDurations[(aIdx + tIdx) % defaultDurations.length],
+        category: (ai.category || "build").toLowerCase(),
+        completed: isCompleted
+      });
+    });
+  });
+
+  // 2. Process longTermGoals pillars if not already covered
+  const lt = dbState?.longTermGoals;
+  if (lt && typeof lt === "object") {
+    const ltMonths = lt.targetMonths || (lt.targetTimeline ? parseInt(lt.targetTimeline) : 3) || 3;
+    const ltHorizon = lt.howSoonPlanning || lt.targetTimeline || `${ltMonths} Months Horizon`;
+
+    const candidatePillars = [
+      { key: "healthGoal", name: "Physical Health & Vitality", icon: "💪", cat: "body", val: lt.healthGoal, time: "07:30 AM", dur: "60 min" },
+      { key: "careerGoal", name: "Career & Financial Craft", icon: "💼", cat: "career", val: lt.careerGoal, time: "10:00 AM", dur: "90 min" },
+      { key: "skillsGoal", name: "Deep Skills & Learning", icon: "🧠", cat: "learning", val: lt.skillsGoal, time: "03:00 PM", dur: "60 min" },
+      { key: "lifestyleGoal", name: "Mindfulness & Harmony", icon: "🧘", cat: "zen", val: lt.lifestyleGoal, time: "07:00 PM", dur: "30 min" },
+      { key: "primaryAppGoal", name: "Primary Temple Vision", icon: "⚡", cat: "build", val: lt.primaryAppGoal, time: "11:30 AM", dur: "75 min" }
+    ];
+
+    candidatePillars.forEach((p) => {
+      if (p.val && p.val.trim() && !results.some(r => r.longTermGoal.toLowerCase().includes(p.val.trim().toLowerCase().slice(0, 15)))) {
+        const cleanVal = p.val.trim();
+        const dgId = `act-lt-${p.key}`;
+        const isCompleted = (dbState?.aiDailyGoals || []).some(
+          g => (g.id === dgId || g.type === p.key) && g.completed
+        );
+        results.push({
+          id: dgId,
+          aiId: p.key,
+          aiName: p.name,
+          aiIcon: p.icon,
+          title: `🎯 ${p.name}: Focused daily action for "${cleanVal.slice(0, 35)}"`,
+          horizon: ltHorizon,
+          targetMonths: ltMonths,
+          longTermGoal: cleanVal,
+          shortTermGoal: lt.monthlyGoal || "Month 1 Milestone",
+          suggestedTime: p.time,
+          suggestedDuration: p.dur,
+          category: p.cat,
+          completed: isCompleted
+        });
+      }
+    });
+  }
+
+  return results;
 }
 
 /**
@@ -748,9 +1480,15 @@ export function generateDailyPlanFromAiGoals(
  */
 export function integrateAiPreferencesIntoState(
   currentState: DBState,
-  selectedAIs: SelectedAIPreference[],
+  rawSelectedAIs: SelectedAIPreference[],
   userOrName?: string | UserProfile
 ): DBState {
+  const seenAIs = new Set<string>();
+  const selectedAIs = (rawSelectedAIs || []).filter(ai => {
+    if (!ai?.aiId || seenAIs.has(ai.aiId)) return false;
+    seenAIs.add(ai.aiId);
+    return true;
+  });
   const actualToday = new Date().toISOString().split("T")[0];
   const name = typeof userOrName === "object"
     ? (userOrName.name || userOrName.username || "Explorer")
@@ -842,6 +1580,21 @@ export function integrateAiPreferencesIntoState(
           progress: 0
         });
         existingGoalIds.add(monthlyGId);
+      }
+    }
+
+    // C2. Explicit Short-Term Milestone provided by user during calibration
+    if (ai.shortTermGoal) {
+      const shortTermGId = `goal-ai-shortterm-${ai.aiId}`;
+      if (!existingGoalIds.has(shortTermGId)) {
+        newGoalsFromAIs.push({
+          id: shortTermGId,
+          module: ai.category?.toLowerCase() || ai.aiId,
+          title: `[${ai.name} Short-Term] ${ai.shortTermGoal}`,
+          status: "In Progress",
+          progress: 0
+        });
+        existingGoalIds.add(shortTermGId);
       }
     }
 

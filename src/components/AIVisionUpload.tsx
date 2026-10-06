@@ -176,7 +176,7 @@ export default function AIVisionUpload({ onAnalyzeComplete, theme, mode }: AIVis
         <span className="text-[9px] font-mono text-slate-500 uppercase">Image-To-Text / OCR Mode</span>
       </div>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {!previewUrl ? (
           /* Dropzone */
           <motion.div

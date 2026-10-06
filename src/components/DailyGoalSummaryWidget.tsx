@@ -373,9 +373,9 @@ export default function DailyGoalSummaryWidget({
           
           {/* Category Progress Bars Row */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-            {categoryScores.map(cat => (
+            {categoryScores.map((cat, idx) => (
               <div 
-                key={cat.key}
+                key={`cat-score-${cat.key}-${idx}`}
                 className={`p-2.5 rounded-xl border text-left space-y-1.5 ${
                   theme === "bright" ? "bg-white border-stone-200" : "bg-black/30 border-white/5"
                 }`}
@@ -419,9 +419,9 @@ export default function DailyGoalSummaryWidget({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1">
-              {localHabits.map(habit => (
+              {localHabits.map((habit, idx) => (
                 <motion.div
-                  key={habit.id}
+                  key={`${habit.id}-${idx}`}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleToggleHabit(habit.id)}
@@ -662,8 +662,8 @@ export default function DailyGoalSummaryWidget({
                   Category Breakdown Progress
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-                  {categoryScores.map(cat => (
-                    <div key={cat.key} className="p-3 rounded-xl bg-stone-950 border border-white/5 space-y-1.5">
+                  {categoryScores.map((cat, idx) => (
+                    <div key={`modal-cat-${cat.key}-${idx}`} className="p-3 rounded-xl bg-stone-950 border border-white/5 space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-bold flex items-center gap-1 text-slate-200">
                           <span>{cat.icon}</span> <span>{cat.name}</span>
@@ -698,9 +698,9 @@ export default function DailyGoalSummaryWidget({
                   >
                     All ({localHabits.length})
                   </button>
-                  {categories.map(cat => (
+                  {categories.map((cat, idx) => (
                     <button
-                      key={cat.key}
+                      key={`cat-btn-${cat.key}-${idx}`}
                       onClick={() => setDetailsCategoryFilter(cat.key)}
                       className={`px-2.5 py-1 rounded-lg cursor-pointer flex items-center gap-1 ${
                         detailsCategoryFilter === cat.key ? "bg-amber-500 text-stone-950 font-bold" : "bg-stone-900 text-slate-400 hover:text-white"
@@ -747,9 +747,9 @@ export default function DailyGoalSummaryWidget({
                     No habit completions match the selected filter criteria.
                   </div>
                 ) : (
-                  filteredHabitsForModal.map(habit => (
+                  filteredHabitsForModal.map((habit, idx) => (
                     <div
-                      key={habit.id}
+                      key={`modal-h-${habit.id}-${idx}`}
                       className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 ${
                         habit.completed
                           ? "bg-emerald-950/20 border-emerald-500/30"

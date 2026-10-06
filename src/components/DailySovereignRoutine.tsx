@@ -604,8 +604,8 @@ export default function DailySovereignRoutine({
                   onChange={(e) => setNewTaskTargetBlock(e.target.value)}
                   className="flex-1 px-3 py-2 rounded-xl bg-stone-950 border border-white/10 text-xs text-stone-300 focus:outline-none"
                 >
-                  {BLOCK_ARCHETYPES.map(arch => (
-                    <option key={arch.id} value={arch.id}>
+                  {BLOCK_ARCHETYPES.map((arch, idx) => (
+                    <option key={`${arch.id}-${idx}`} value={arch.id}>
                       {arch.shortName}
                     </option>
                   ))}

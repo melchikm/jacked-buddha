@@ -557,9 +557,9 @@ export default function GoalAlertsAndTrackerHub({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {longTermGoals.map((goal) => (
+            {longTermGoals.map((goal, idx) => (
               <div
-                key={goal.id}
+                key={`hub-ltg-${goal.id}-${idx}`}
                 onClick={() => onNavigateToView && onNavigateToView(goal.viewKey)}
                 className={`p-5 rounded-2xl border transition-all cursor-pointer hover:border-amber-400/50 group flex flex-col justify-between ${
                   theme === "bright" ? "bg-stone-50 border-stone-200" : "bg-black/40 border-white/5 hover:bg-stone-900/40"
@@ -654,8 +654,8 @@ export default function GoalAlertsAndTrackerHub({
                   className="px-3 py-2 rounded-xl bg-stone-900 border border-white/10 text-xs text-stone-300 focus:outline-none"
                 >
                   {effectiveSelectedAIs.length > 0 ? (
-                    effectiveSelectedAIs.map(ai => (
-                      <option key={ai.aiId} value={ai.aiId}>
+                    effectiveSelectedAIs.map((ai, idx) => (
+                      <option key={`${ai.aiId}-${idx}`} value={ai.aiId}>
                         {ai.avatar} {ai.name} ({ai.category})
                       </option>
                     ))
@@ -763,9 +763,9 @@ export default function GoalAlertsAndTrackerHub({
                     Strategic AI Goals (Aligned with Long-Term Horizons)
                   </span>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                    {aiDailyGoals.map((g) => (
+                    {aiDailyGoals.map((g, idx) => (
                       <div
-                        key={g.id}
+                        key={`hub-dg-${g.id}-${idx}`}
                         onClick={() => handleToggleAIGoal(g.id)}
                         className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
                           g.completed

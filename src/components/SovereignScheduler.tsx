@@ -857,7 +857,7 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
                     </button>
                   </div>
                 ) : (
-                  aiGoals.map((goal) => {
+                  aiGoals.map((goal, idx) => {
                     const tagColor = goal.type === "fitness" ? "text-red-400 bg-red-500/10 border-red-500/20" :
                                      goal.type === "mba" ? "text-sky-400 bg-sky-500/10 border-sky-500/20" :
                                      goal.type === "finance" ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" :
@@ -868,7 +868,7 @@ export default function SovereignScheduler({ dbState, onUpdateState, theme }: So
 
                     return (
                       <div
-                        key={goal.id}
+                        key={`sched-ai-goal-${goal.id}-${idx}`}
                         className={`p-4 rounded-2xl border transition-all flex gap-3 ${
                           goal.completed
                             ? "bg-emerald-500/5 border-emerald-500/10 opacity-60"

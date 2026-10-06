@@ -331,11 +331,11 @@ export default function AICouncilRoom({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {goalMatched.map((match) => {
+          {goalMatched.map((match, idx) => {
             const isSelected = !isCouncilAssemblyMode && selectedAgentId === match.agent.id;
             return (
               <button
-                key={match.agent.id}
+                key={`matched-agent-${match.agent.id}-${idx}`}
                 onClick={() => handleSelectAgent(match.agent.id)}
                 className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                   isSelected
@@ -423,12 +423,12 @@ export default function AICouncilRoom({
             </div>
           </button>
 
-          {COUNCIL_AGENTS.map((agent) => {
+          {COUNCIL_AGENTS.map((agent, idx) => {
             const isSelected = !isCouncilAssemblyMode && selectedAgentId === agent.id;
             const isMatched = !!isAgentMatchedToGoal(agent.id, userGoals);
             return (
               <button
-                key={agent.id}
+                key={`${agent.id}-${idx}`}
                 onClick={() => handleSelectAgent(agent.id)}
                 className={`px-3.5 py-2.5 rounded-2xl border shrink-0 flex items-center gap-2.5 transition-all cursor-pointer relative ${
                   isSelected

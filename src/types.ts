@@ -30,7 +30,9 @@ export interface SelectedAIPreference {
   specialty: string;
   category?: string;
   individualGoal: string;
-  targetHorizon?: string; // e.g. "1 Month", "3 Months", "6 Months", "1 Year"
+  longTermGoal?: string;
+  shortTermGoal?: string;
+  targetHorizon?: string; // e.g. "4 Months", "3 Months", "6 Months", "1 Year"
   targetMonths?: number;
   monthlyRoadmap?: {
     month: number;
@@ -193,6 +195,8 @@ export interface AIDailyGoal {
   aiId?: string;
   aiName?: string;
   aiIcon?: string;
+  completedDates?: Record<string, boolean>;
+  dateStr?: string;
 }
 
 export interface ZeroTracker {
@@ -315,6 +319,7 @@ export interface DBState {
   plansByDate?: Record<string, TodayPlan>;
   scheduledTasks?: ScheduledTask[];
   aiDailyGoals?: AIDailyGoal[];
+  dailyGoalsByDate?: Record<string, AIDailyGoal[]>;
   zeroTrackers?: ZeroTracker[];
   longTermGoals?: UserLongTermGoals;
   userProfile?: UserProfile;

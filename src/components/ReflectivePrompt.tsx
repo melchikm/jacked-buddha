@@ -387,7 +387,7 @@ Provide ONE short, personalized, highly actionable growth insight (maximum 28 wo
       </div>
 
       {/* Question Callout */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         <motion.div
           key={activePrompt.question}
           initial={{ opacity: 0, y: 8 }}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { DBState, UserProfile, COUNCIL_AGENTS, MetricState, HistoryLog, UserLongTermGoals, SelectedAIPreference, Goal } from "./types";
 import { 
   Dumbbell, Compass, Users, Heart, GraduationCap, Briefcase, 
@@ -28,6 +28,7 @@ import { Sun, Moon, Volume2, VolumeX, Clock } from "lucide-react";
 import { logOutFromFirebase, auth } from "./lib/firebase";
 import { offlineQueue } from "./lib/offlineQueue";
 import OfflineSyncBadge from "./components/OfflineSyncBadge";
+import { getAuthHeaders, clearAuthToken } from "./utils/apiAuth";
 
 // Aspect-specific custom modules
 import FoodGoalsView from "./components/FoodGoalsView";
@@ -59,6 +60,7 @@ import NatureImmersionView from "./components/NatureImmersionView";
 import RealTimeStatusBanner from "./components/RealTimeStatusBanner";
 import SidebarNavigation from "./components/SidebarNavigation";
 import MissionDashboard from "./components/MissionDashboard";
+import { VitaLifeLogo } from "./components/VitaLifeLogo";
 
 // Initial empty state for metrics in case API fails
 const DEFAULT_METRICS: MetricState = {
@@ -218,6 +220,19 @@ export default function App() {
   // Personalized AI Council Preferences & Individual Goals Onboarding Modal (for new or resetted users)
   const [isAiPreferencesModalOpen, setIsAiPreferencesModalOpen] = useState<boolean>(false);
   const [isPreferencesNewUser, setIsPreferencesNewUser] = useState<boolean>(false);
+  const [preferencesInitialStep, setPreferencesInitialStep] = useState<0 | 1 | 2 | 3 | 4 | undefined>(undefined);
+
+  const activeUserSelectedAIs = useMemo(() => {
+    const raw = user?.selectedAIs && user.selectedAIs.length > 0
+      ? user.selectedAIs
+      : (dbState.selectedAIs || []);
+    const seen = new Set<string>();
+    return raw.filter((ai) => {
+      if (!ai?.aiId || seen.has(ai.aiId)) return false;
+      seen.add(ai.aiId);
+      return true;
+    });
+  }, [user?.selectedAIs, dbState.selectedAIs]);
 
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [nowTick, setNowTick] = useState<number>(Date.now());
@@ -268,6 +283,7 @@ export default function App() {
           mountainState: data.mountainState,
           metricsByDate: data.metricsByDate || {},
           plansByDate: data.plansByDate || {},
+          dailyGoalsByDate: data.dailyGoalsByDate || {},
           scheduledTasks: data.scheduledTasks || [],
           aiDailyGoals: data.aiDailyGoals || [],
           zeroTrackers: data.zeroTrackers || [],
@@ -413,17 +429,18 @@ export default function App() {
       }));
     }
 
-    // Welcome and initiation is strictly for brand-new users who haven't completed onboarding or welcome
+    // First after login: client is asked their age & goals, then asked to select apps & integrate
     const cleanKey = (userObj.username || userObj.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const hasPriorWelcome = typeof window !== "undefined" && (
-      localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
-      localStorage.getItem("vita-user-welcomed-global") === "true" ||
-      profile.welcomeAcknowledged === true ||
-      profile.isOnboarded === true
-    );
+    const hasGoals = !!(userObj.longTermGoals?.primaryAppGoal && userObj.longTermGoals.primaryAppGoal.trim().length > 0);
     const hasConfiguredTools = Array.isArray(profile.selectedAIs) && profile.selectedAIs.length > 0;
 
-    if (!hasPriorWelcome && !hasConfiguredTools) {
+    if (!hasGoals) {
+      // Step 1: First ask age and goals
+      setTimeout(() => {
+        setIsGoalCalibrationModalOpen(true);
+      }, 350);
+    } else if (!hasConfiguredTools) {
+      // Step 2: Next ask to select apps and integrate
       setIsPreferencesNewUser(true);
       setTimeout(() => {
         setIsAiPreferencesModalOpen(true);
@@ -445,6 +462,12 @@ export default function App() {
 
   // Persist AI Preferences & Individual Goals, synchronizing with daily tasks, weekly targets, & Mountain of Life
   const handleSaveAiPreferences = async (newSelectedAIs: SelectedAIPreference[]) => {
+    const seen = new Set<string>();
+    const deduplicatedAIs = newSelectedAIs.filter((ai) => {
+      if (!ai?.aiId || seen.has(ai.aiId)) return false;
+      seen.add(ai.aiId);
+      return true;
+    });
     const uname = user?.username || user?.name || "Explorer";
     const userEmail = user?.email || `${uname.toLowerCase().replace(/[^a-z0-9]/g, "")}@vita.io`;
     const cleanKey = uname.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -462,7 +485,7 @@ export default function App() {
     const updatedUser: UserProfile = {
       ...(user || { name: uname, email: userEmail }),
       username: uname,
-      selectedAIs: newSelectedAIs,
+      selectedAIs: deduplicatedAIs,
       isOnboarded: true,
       welcomeAcknowledged: true
     };
@@ -472,7 +495,7 @@ export default function App() {
     }
 
     // Integrate into local dbState
-    setDbState((prev) => integrateAiPreferencesIntoState(prev, newSelectedAIs, updatedUser));
+    setDbState((prev) => integrateAiPreferencesIntoState(prev, deduplicatedAIs, updatedUser));
 
     // Persist to server
     try {
@@ -481,7 +504,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: uname,
-          selectedAIs: newSelectedAIs,
+          selectedAIs: deduplicatedAIs,
           profile: {
             name: user?.name || uname,
             username: uname,
@@ -499,7 +522,7 @@ export default function App() {
             mountainState: data.mountainState || prev.mountainState,
             aiDailyGoals: data.aiDailyGoals || prev.aiDailyGoals,
             habits: data.habits || prev.habits,
-            selectedAIs: newSelectedAIs
+            selectedAIs: deduplicatedAIs
           }));
         }
       }
@@ -519,6 +542,7 @@ export default function App() {
 
   const handleLogout = () => {
     logOutFromFirebase();
+    clearAuthToken();
     setUser(null);
     if (typeof window !== "undefined") {
       localStorage.removeItem("zen-user-session");
@@ -550,7 +574,7 @@ export default function App() {
     try {
       const res = await fetch("/api/store/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ username: uname, ...stateToSave })
       });
       if (res.ok) {
@@ -575,20 +599,21 @@ export default function App() {
         ...prev,
         metrics: { ...prev.metrics, ...newMetrics }
       };
-      saveDbStateToServer(updated);
+      setTimeout(() => saveDbStateToServer(updated), 0);
       return updated;
     });
   };
 
   const addNewHistoryLog = (newLog: HistoryLog) => {
-    // Enqueue individual log into offline queue for Firestore synchronization
-    offlineQueue.enqueue("ADD_LOG", newLog, auth.currentUser?.uid);
+    setTimeout(() => {
+      offlineQueue.enqueue("ADD_LOG", newLog, auth.currentUser?.uid);
+    }, 0);
     setDbState((prev) => {
       const updated = {
         ...prev,
         historyLogs: [newLog, ...prev.historyLogs]
       };
-      saveDbStateToServer(updated);
+      setTimeout(() => saveDbStateToServer(updated), 0);
       return updated;
     });
   };
@@ -609,7 +634,7 @@ export default function App() {
         goals: resolved.goals !== undefined ? resolved.goals : prev.goals,
         scheduledTasks: resolved.scheduledTasks !== undefined ? resolved.scheduledTasks : prev.scheduledTasks
       };
-      saveDbStateToServer(updated);
+      setTimeout(() => saveDbStateToServer(updated), 0);
       return updated;
     });
   };
@@ -1011,13 +1036,11 @@ export default function App() {
         {/* Logo & Greeting */}
         <div className="space-y-8">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-600 to-amber-400 flex items-center justify-center text-xl shadow-lg shadow-amber-950/40 border border-white/10 text-black">
-              ⚡
-            </div>
+            <VitaLifeLogo size={42} withBackground={true} withGlow={true} className="rounded-xl shadow-lg shadow-emerald-950/50" />
             <div>
               <h1 className={`text-sm font-display font-black tracking-wider uppercase ${
                 theme === "bright" ? "text-stone-900" : "text-white"
-              }`}>Vita OS</h1>
+              }`}>Vita Life</h1>
               <span className="text-[9px] font-mono tracking-widest text-amber-500/90 uppercase font-semibold">Universal Life Architecture</span>
             </div>
           </div>
@@ -1060,18 +1083,18 @@ export default function App() {
             </button>
 
             {/* Display Active AIs for user */}
-            {((user?.selectedAIs && user.selectedAIs.length > 0) || (dbState.selectedAIs && dbState.selectedAIs.length > 0)) && (
+            {activeUserSelectedAIs.length > 0 && (
               <div className="pt-2 border-t border-white/5 space-y-1.5">
                 <div className="flex items-center justify-between text-[10px] font-mono text-amber-400">
                   <span className="font-semibold">SOVEREIGN TOOLS</span>
                   <span className="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded text-[9px] font-bold">
-                    {(user?.selectedAIs || dbState.selectedAIs || []).length} Active
+                    {activeUserSelectedAIs.length} Active
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {(user?.selectedAIs || dbState.selectedAIs || []).map((ai) => (
+                  {activeUserSelectedAIs.map((ai, idx) => (
                     <span
-                      key={ai.aiId}
+                      key={`${ai.aiId}-${idx}`}
                       title={`${ai.name}: ${ai.individualGoal}`}
                       className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-xs flex items-center gap-1 cursor-default transition-colors"
                     >
@@ -1414,14 +1437,8 @@ export default function App() {
         </div>
 
         {/* ROUTED CONTENT VIEWS */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeView}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
+        <div key={activeView} className="transition-opacity duration-200">
+          <div>
             {/* 1. MISSION DASHBOARD */}
             {activeView === "mission_control" && (
               <MissionDashboard
@@ -1429,7 +1446,11 @@ export default function App() {
                 user={user}
                 theme={theme}
                 onUpdateState={handleUpdateState}
-                onOpenAiPreferences={() => setIsAiPreferencesModalOpen(true)}
+                onOpenAiPreferences={(step) => {
+                  setPreferencesInitialStep(step);
+                  setIsAiPreferencesModalOpen(true);
+                }}
+                onOpenDailyPlanner={() => setIsDailyPlanningModalOpen(true)}
                 onNavigateToView={(v) => { sound.playSingingBowl(); setActiveView(v as any); }}
               />
             )}
@@ -1598,8 +1619,8 @@ export default function App() {
               />
             )}
 
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        </div>
 
       </main>
 
@@ -1628,6 +1649,7 @@ export default function App() {
         onClose={() => setIsDailyPlanningModalOpen(false)}
         dbState={dbState}
         userName={user?.username || user?.name || "Explorer"}
+        selectedAIs={activeUserSelectedAIs}
         onUpdateState={handleUpdateState}
         theme={theme}
       />
@@ -1655,6 +1677,12 @@ export default function App() {
             ...dbState,
             longTermGoals: newGoals
           });
+          // Close age and goals modal, then ask to select apps and integrate
+          setIsGoalCalibrationModalOpen(false);
+          setIsPreferencesNewUser(true);
+          setTimeout(() => {
+            setIsAiPreferencesModalOpen(true);
+          }, 350);
         }}
       />
 
@@ -1664,12 +1692,14 @@ export default function App() {
         onClose={() => {
           setIsAiPreferencesModalOpen(false);
           setIsPreferencesNewUser(false);
+          setPreferencesInitialStep(undefined);
         }}
+        initialStep={preferencesInitialStep}
         userName={user?.name || user?.username || "Explorer"}
         currentUser={user}
         isNewOrResetted={isPreferencesNewUser}
-        initialPreferences={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
-        currentSelectedAIs={user?.selectedAIs && user.selectedAIs.length > 0 ? user.selectedAIs : (dbState.selectedAIs || [])}
+        initialPreferences={activeUserSelectedAIs}
+        currentSelectedAIs={activeUserSelectedAIs}
         onSavePreferences={handleSaveAiPreferences}
         theme={theme}
       />

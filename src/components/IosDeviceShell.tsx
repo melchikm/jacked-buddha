@@ -320,7 +320,7 @@ export default function IosDeviceShell({
           </div>
           
           <p className="text-xs leading-relaxed text-slate-400 space-y-2">
-            You are running the high-fidelity <strong>Vita iOS 18 Web App</strong>. 
+            You are running the high-fidelity <strong>Vita Life iOS 18 Web App</strong>. 
             On laptops, this displays an interactive phone enclosure with a reactive <strong>Dynamic Island</strong>, <strong>Control Center</strong>, and <strong>App Library</strong>.
           </p>
 
@@ -421,11 +421,11 @@ export default function IosDeviceShell({
                 setIslandMode("idle");
               } else {
                 // idle click shows quick status expansion
-                triggerNotification("Vita OS", "Consistently building. Tap to configure", "🧘");
+                triggerNotification("Vita Life", "Consistently building. Tap to configure", "🏔️");
               }
             }}
           >
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
               {islandMode === "idle" && (
                 <motion.div 
                   key="idle"
@@ -630,7 +630,7 @@ export default function IosDeviceShell({
               theme === "bright" ? "from-amber-300 to-transparent" : "from-indigo-900 to-transparent"
             }`} />
 
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
               
               {/* iOS MODULE APP DRAWER SHUTTLE (Renders the selected app fullscreen) */}
               {iosActiveApp !== "none" ? (

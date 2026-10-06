@@ -328,14 +328,14 @@ export default function HabitTracker({ dbState, onUpdateState, theme }: HabitTra
               No daily habits defined. Define below to start your streak.
             </div>
           ) : (
-            habits.map((habit) => {
+            habits.map((habit, idx) => {
               const isCheckedToday = !!(habit.history && habit.history[todayStr]);
               const dynamicStreak = calculateStreak(habit.history);
               const isCeleb = celebratingId === habit.id;
 
               return (
                 <motion.div
-                  key={habit.id}
+                  key={`habit-tracker-${habit.id}-${idx}`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={isCeleb ? {
                     scale: [1, 1.02, 1],
@@ -491,8 +491,8 @@ export default function HabitTracker({ dbState, onUpdateState, theme }: HabitTra
                 }`}
               >
                 <option value="all">⚡ All Habits (Average)</option>
-                {habits.map(h => (
-                  <option key={h.id} value={h.id}>🎯 {h.title}</option>
+                {habits.map((h, idx) => (
+                  <option key={`habit-opt-${h.id}-${idx}`} value={h.id}>🎯 {h.title}</option>
                 ))}
               </select>
             </div>

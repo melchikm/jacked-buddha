@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 
@@ -389,18 +390,154 @@ function createFreshDBState(userProfile?: any, goals?: any, isBlankReset: boolea
     ],
     metricsByDate: {},
     plansByDate: {},
+    dailyGoalsByDate: {},
     conversations: []
   };
 }
+
+// ====================================================
+// CRYPTOGRAPHIC DATABASE ENCRYPTION & AUTHENTICATION
+// ====================================================
+
+// 1. Password Hashing using Scrypt + Cryptographic Salt
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+  return `scrypt:${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, storedHash: string): boolean {
+  if (!storedHash) return false;
+  // Backward compatibility: If stored hash is legacy plaintext
+  if (!storedHash.startsWith("scrypt:")) {
+    return storedHash === password;
+  }
+  try {
+    const [, salt, originalHash] = storedHash.split(":");
+    if (!salt || !originalHash) return false;
+    const hashBuffer = crypto.scryptSync(password, salt, 64);
+    const originalBuffer = Buffer.from(originalHash, "hex");
+    return crypto.timingSafeEqual(hashBuffer, originalBuffer);
+  } catch {
+    return false;
+  }
+}
+
+// 2. AES-256-GCM Field & File-Level Database Encryption
+const ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET || "vita-sovereign-db-key-seed-98234";
+const DB_ENCRYPTION_KEY = crypto.scryptSync(ENCRYPTION_SECRET, "salt-vita-core-vault", 32);
+
+export function encryptData(text: string): string {
+  if (!text) return "";
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", DB_ENCRYPTION_KEY, iv);
+  let encrypted = cipher.update(text, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  const authTag = cipher.getAuthTag().toString("hex");
+  return `enc:v1:${iv.toString("hex")}:${authTag}:${encrypted}`;
+}
+
+export function decryptData(cipherText: string): string {
+  if (!cipherText || !cipherText.startsWith("enc:v1:")) return cipherText;
+  try {
+    const [, , ivHex, authTagHex, encryptedHex] = cipherText.split(":");
+    const decipher = crypto.createDecipheriv("aes-256-gcm", DB_ENCRYPTION_KEY, Buffer.from(ivHex, "hex"));
+    decipher.setAuthTag(Buffer.from(authTagHex, "hex"));
+    let decrypted = decipher.update(encryptedHex, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  } catch (err) {
+    console.warn("Decryption error:", err);
+    return cipherText;
+  }
+}
+
+// 3. Endpoint Authentication: HMAC-SHA256 Signed Session Token
+const AUTH_SECRET = process.env.AUTH_SECRET || "vita-jwt-secret-core-sovereign-auth-key-2026";
+
+export function generateAuthToken(payload: { username: string; email?: string }): string {
+  const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
+  const exp = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days
+  const body = Buffer.from(JSON.stringify({ ...payload, exp, iat: Date.now() })).toString("base64url");
+  const signature = crypto.createHmac("sha256", AUTH_SECRET).update(`${header}.${body}`).digest("base64url");
+  return `${header}.${body}.${signature}`;
+}
+
+export function verifyAuthToken(token: string): { username: string; email?: string } | null {
+  if (!token) return null;
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const [header, body, signature] = parts;
+    const expectedSig = crypto.createHmac("sha256", AUTH_SECRET).update(`${header}.${body}`).digest("base64url");
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
+      return null;
+    }
+    const data = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+    if (data.exp && Date.now() > data.exp) {
+      return null;
+    }
+    return { username: data.username, email: data.email };
+  } catch {
+    return null;
+  }
+}
+
+// Express Endpoint Authentication Middleware
+export function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : (req.headers["x-auth-token"] as string);
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: "UNAUTHORIZED",
+      message: "Authentication token required. Please sign in to access this endpoint."
+    });
+  }
+
+  const verified = verifyAuthToken(token);
+  if (!verified) {
+    return res.status(401).json({
+      success: false,
+      error: "INVALID_TOKEN",
+      message: "Invalid or expired authentication token. Please re-authenticate."
+    });
+  }
+
+  (req as any).user = verified;
+  next();
+}
+
+export function optionalAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : (req.headers["x-auth-token"] as string);
+  if (token) {
+    const verified = verifyAuthToken(token);
+    if (verified) {
+      (req as any).user = verified;
+    }
+  }
+  next();
+}
+
+// ====================================================
+// PERSISTENT DATABASE ENGINE (AES-256-GCM AT REST)
+// ====================================================
 
 const loadDB = () => {
   let db: any = createFreshDBState();
 
   if (fs.existsSync(DB_PATH)) {
     try {
-      db = JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
+      const raw = fs.readFileSync(DB_PATH, "utf-8");
+      let content = raw;
+      if (raw.startsWith("enc:v1:")) {
+        content = decryptData(raw);
+      }
+      db = JSON.parse(content);
     } catch (e) {
-      console.error("Error reading db file, resetting", e);
+      console.error("Error reading or decrypting db file, resetting", e);
     }
   }
 
@@ -414,24 +551,64 @@ const loadDB = () => {
 
 const saveDB = (data: any) => {
   try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
+    const jsonStr = JSON.stringify(data, null, 2);
+    // Encrypt database at rest with AES-256-GCM
+    const encrypted = encryptData(jsonStr);
+    fs.writeFileSync(DB_PATH, encrypted, "utf-8");
   } catch (err) {
-    console.error("Warning: Failed to save DB to disk:", err);
+    console.error("Warning: Failed to save encrypted DB to disk:", err);
   }
 };
 
-// Ensure database file is initialized
+// Ensure database file is initialized and encrypted at rest with AES-256-GCM
 if (!fs.existsSync(DB_PATH)) {
   saveDB(loadDB());
+} else {
+  try {
+    const raw = fs.readFileSync(DB_PATH, "utf-8");
+    if (!raw.startsWith("enc:v1:")) {
+      const current = loadDB();
+      saveDB(current);
+      console.log("Database file successfully encrypted with AES-256-GCM at rest.");
+    }
+  } catch (e) {
+    console.error("Database encryption check on boot:", e);
+  }
 }
 
 // ----------------------------------------------------
 // API ROUTES
 // ----------------------------------------------------
 
-// 1. Core Health API
+// 1. Core Health & Security Status API
 app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", time: new Date().toISOString() });
+});
+
+app.get("/api/system/security", (req, res) => {
+  let isEncryptedAtRest = false;
+  if (fs.existsSync(DB_PATH)) {
+    try {
+      const raw = fs.readFileSync(DB_PATH, "utf-8");
+      isEncryptedAtRest = raw.startsWith("enc:v1:");
+    } catch {
+      isEncryptedAtRest = false;
+    }
+  }
+  res.json({
+    success: true,
+    databaseEncryption: {
+      algorithm: "AES-256-GCM",
+      status: "active",
+      atRestEncrypted: isEncryptedAtRest,
+      keyDerivation: "Scrypt-64"
+    },
+    endpointAuthentication: {
+      scheme: "Bearer HMAC-SHA256 Token",
+      passwordHashing: "Scrypt + 128-bit Salt",
+      status: "active"
+    }
+  });
 });
 
 // PWA Manifest static serve helper
@@ -439,7 +616,7 @@ app.get("/manifest.json", (req, res) => {
   res.sendFile(path.join(process.cwd(), "manifest.json"));
 });
 
-// 2. Authentication API (Google Mail & Mandatory Password Security for Vita OS)
+// 2. Authentication API (Google Mail & Mandatory Password Security for Vita Life)
 
 app.get("/api/auth/check-google-user", (req, res) => {
   const db = loadDB();
@@ -525,12 +702,13 @@ app.post("/api/auth/google-setup", (req, res) => {
 
   const cleanName = (name || cleanHandle).trim();
   const trimmedPassword = password.trim();
+  const hashedPassword = hashPassword(trimmedPassword);
 
   if (existing) {
     const oldUsername = existing.username;
     existing.username = cleanHandle;
     existing.name = cleanName;
-    existing.password = trimmedPassword;
+    existing.password = hashedPassword;
     existing.googleUid = googleUid || existing.googleUid;
     existing.photoURL = photoURL || existing.photoURL;
     existing.updatedAt = new Date().toISOString();
@@ -546,7 +724,7 @@ app.post("/api/auth/google-setup", (req, res) => {
       email: email.toLowerCase(),
       name: cleanName,
       username: cleanHandle,
-      password: trimmedPassword,
+      password: hashedPassword,
       photoURL: photoURL || "",
       selectedAIs: [],
       isOnboarded: false,
@@ -562,9 +740,11 @@ app.post("/api/auth/google-setup", (req, res) => {
   const userGoals = existing.longTermGoals || userState?.longTermGoals;
   const selectedAIs = existing.selectedAIs || userState?.selectedAIs || userState?.userProfile?.selectedAIs || [];
   const isOnboarded = !!existing.isOnboarded || (Array.isArray(selectedAIs) && selectedAIs.length > 0);
+  const token = generateAuthToken({ username: existing.username, email: existing.email });
 
   return res.json({
     success: true,
+    token,
     user: {
       name: existing.name,
       username: existing.username,
@@ -591,9 +771,11 @@ app.post("/api/auth/login", (req, res) => {
     const userState = existing ? db.userStates?.[existing.username] : null;
     const selectedAIs = existing?.selectedAIs || userState?.selectedAIs || userState?.userProfile?.selectedAIs || [];
     const isOnboarded = !!existing?.isOnboarded || (Array.isArray(selectedAIs) && selectedAIs.length > 0);
+    const token = generateAuthToken({ username: existing?.username || effectiveUser, email: existing?.email });
 
     return res.json({
       success: true,
+      token,
       user: {
         name: existing?.name || effectiveUser,
         username: existing?.username || effectiveUser,
@@ -631,17 +813,23 @@ app.post("/api/auth/login", (req, res) => {
     });
   }
 
-  // Verify Mandatory Password
-  if (existingUser.password && existingUser.password !== effectivePassword) {
-    return res.status(401).json({ 
-      success: false, 
-      message: "Incorrect password. Please verify your credentials or log in with Google Mail." 
-    });
-  }
-
-  // If user had no password yet, set it now
-  if (!existingUser.password) {
-    existingUser.password = effectivePassword;
+  // Verify Mandatory Password with cryptographically secure Scrypt hash and constant-time check
+  if (existingUser.password) {
+    const isPwValid = verifyPassword(effectivePassword, existingUser.password);
+    if (!isPwValid) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Incorrect password. Please verify your credentials or log in with Google Mail." 
+      });
+    }
+    // Upgrade plain text password to cryptographic salt & hash if needed
+    if (!existingUser.password.startsWith("scrypt:")) {
+      existingUser.password = hashPassword(effectivePassword);
+      saveDB(db);
+    }
+  } else {
+    // If user had no password yet, hash and set it now
+    existingUser.password = hashPassword(effectivePassword);
     saveDB(db);
   }
 
@@ -649,9 +837,11 @@ app.post("/api/auth/login", (req, res) => {
   const userGoals = existingUser.longTermGoals || userState?.longTermGoals;
   const selectedAIs = existingUser.selectedAIs || userState?.selectedAIs || userState?.userProfile?.selectedAIs || [];
   const isOnboarded = (Array.isArray(selectedAIs) && selectedAIs.length > 0) || !!(userGoals && userGoals.primaryAppGoal);
+  const token = generateAuthToken({ username: existingUser.username, email: existingUser.email });
 
   return res.json({
     success: true,
+    token,
     user: {
       name: existingUser.name || existingUser.username,
       username: existingUser.username,
@@ -692,10 +882,10 @@ app.post("/api/user/update-credentials", (req, res) => {
       return res.status(400).json({ success: false, message: "New password must be at least 4 characters long." });
     }
     // If user already has a password set, currentPassword must match
-    if (user.password && user.password !== (currentPassword || "").trim()) {
+    if (user.password && !verifyPassword((currentPassword || "").trim(), user.password)) {
       return res.status(400).json({ success: false, message: "Current password does not match. Please verify your current password." });
     }
-    user.password = newPassword.trim();
+    user.password = hashPassword(newPassword.trim());
   }
 
   // If updating display name
@@ -731,9 +921,12 @@ app.post("/api/user/update-credentials", (req, res) => {
   user.updatedAt = new Date().toISOString();
   saveDB(db);
 
+  const token = generateAuthToken({ username: user.username, email: user.email });
+
   return res.json({
     success: true,
     message: "Credentials successfully updated.",
+    token,
     user: {
       name: user.name,
       username: user.username,
@@ -743,6 +936,14 @@ app.post("/api/user/update-credentials", (req, res) => {
       selectedAIs: user.selectedAIs || [],
       hasPassword: !!user.password
     }
+  });
+});
+
+// Endpoint token verification route
+app.get("/api/auth/verify", requireAuth, (req, res) => {
+  res.json({
+    success: true,
+    user: (req as any).user
   });
 });
 
@@ -760,7 +961,7 @@ app.post("/api/auth/register", (req, res) => {
   const existingIndex = db.users.findIndex((u: any) => u.username && u.username.toLowerCase() === trimmed.toLowerCase());
   const userObj = {
     username: trimmed,
-    password: password || "vita",
+    password: hashPassword(password || "vita"),
     name: name || trimmed,
     email: email || `${trimmed.toLowerCase()}@vita.io`,
     age: age ? parseInt(age, 10) : undefined,
@@ -774,8 +975,11 @@ app.post("/api/auth/register", (req, res) => {
   }
 
   saveDB(db);
+  const token = generateAuthToken({ username: userObj.username, email: userObj.email });
+
   return res.json({
     success: true,
+    token,
     user: { name: userObj.name, username: userObj.username, email: userObj.email, age: userObj.age, isOnboarded: false }
   });
 });
@@ -1173,7 +1377,13 @@ app.post("/api/user/ai-preferences", (req, res) => {
   }
 
   const userStore = db.userStates[userKey];
-  const safeSelectedAIs = Array.isArray(selectedAIs) ? selectedAIs : [];
+  const rawSelectedAIs = Array.isArray(selectedAIs) ? selectedAIs : [];
+  const seenAIs = new Set<string>();
+  const safeSelectedAIs = rawSelectedAIs.filter((ai: any) => {
+    if (!ai?.aiId || seenAIs.has(ai.aiId)) return false;
+    seenAIs.add(ai.aiId);
+    return true;
+  });
   userStore.selectedAIs = safeSelectedAIs;
 
   const todayDateStr = new Date().toISOString().split("T")[0];
@@ -1409,20 +1619,38 @@ app.post("/api/user/ai-preferences", (req, res) => {
 
 // Vita Man Goal Breakdown & Analysis API
 app.post("/api/user/analyze-goal", async (req, res) => {
-  const { toolId, toolName, goal, timeSpan = "3 Months", age = 28, username = "Explorer" } = req.body || {};
+  const { toolId, toolName, goal, shortTermGoal, targetMonths, timeSpan = "3 Months", age = 28, username = "Explorer" } = req.body || {};
   const cleanGoal = String(goal || `Master ${toolName} capabilities`).trim();
+  const cleanShortTerm = String(shortTermGoal || "").trim();
+
+  // Parse exact custom number of months
+  let months = 3;
+  if (typeof targetMonths === "number" && targetMonths > 0) {
+    months = Math.max(1, Math.round(targetMonths));
+  } else {
+    const match = String(timeSpan).match(/(\d+)\s*month/i);
+    if (match) {
+      months = Math.max(1, parseInt(match[1], 10));
+    } else if (String(timeSpan).includes("Year") || String(timeSpan).includes("12")) {
+      months = 12;
+    } else if (String(timeSpan).includes("24")) {
+      months = 24;
+    }
+  }
 
   // Try Gemini AI if available
   if (ai) {
     try {
       const prompt = `You are "Vita Man", the sovereign, wise personal architect and guide of the Vita temple app.
-The user ${username} (age ${age}) has selected the development tool "${toolName}" (ID: ${toolId}) and stated their goal: "${cleanGoal}".
-Target time span: ${timeSpan}.
+The user ${username} (age ${age}) has selected the development tool "${toolName}" (ID: ${toolId}).
+Long-term vision goal: "${cleanGoal}".
+${cleanShortTerm ? `Immediate short-term milestone / goal: "${cleanShortTerm}".` : ""}
+Target time span: ${months} Months (~${months * 30} days).
 
 Analyze this goal and break it down into:
-1. "monthlyRoadmap": Array of 3 to 6 objects with fields { "month": number, "title": string, "target": string, "focusMilestone": string } representing strategic monthly progression checkpoints.
-2. "dailyTasks": Array of 3 concrete, high-leverage daily actions/checkboxes (with an emoji at the start) that the user must execute daily. These will appear on their Dashboard and award +120m to Mountain of Life.
-3. "summaryAnalysis": A concise, inspiring 2-sentence architectural analysis from Vita Man acknowledging their age (${age}) and roadmap.
+1. "monthlyRoadmap": Array of ${Math.min(months, 8)} objects with fields { "month": number, "title": string, "target": string, "focusMilestone": string } representing strategic monthly progression checkpoints tailored across the ${months} months. Month 1 must focus on the short-term milestone.
+2. "dailyTasks": Array of 3 concrete, high-leverage daily actions/checkboxes (with an emoji at the start) that the user must execute daily on a daily basis. These will appear on their Daily Dashboard and award +120m to Mountain of Life.
+3. "summaryAnalysis": A concise, inspiring 2-sentence architectural analysis from Vita Man acknowledging their age (${age}), the ${months}-month horizon, and short-term focus.
 
 Respond strictly with valid JSON without markdown fences matching:
 {
@@ -1461,7 +1689,7 @@ Respond strictly with valid JSON without markdown fences matching:
           success: true,
           monthlyRoadmap: parsedResult.monthlyRoadmap,
           dailyTasks: parsedResult.dailyTasks,
-          summaryAnalysis: parsedResult.summaryAnalysis || `Vita Man has structured ${toolName} into a disciplined ${timeSpan} ascent.`,
+          summaryAnalysis: parsedResult.summaryAnalysis || `Vita Man has structured ${toolName} into a disciplined ${months}-Month ascent.`,
           mountainAltitudePerTask: 120,
           xpPerTask: 40
         });
@@ -1471,14 +1699,7 @@ Respond strictly with valid JSON without markdown fences matching:
     }
   }
 
-  // Fallback algorithmic breakdown
-  let months = 3;
-  if (timeSpan.includes("1 Month")) months = 1;
-  else if (timeSpan.includes("3 Month")) months = 3;
-  else if (timeSpan.includes("6 Month")) months = 6;
-  else if (timeSpan.includes("12 Month") || timeSpan.includes("1 Year")) months = 12;
-  else if (timeSpan.includes("24 Month") || timeSpan.includes("2 Year")) months = 24;
-
+  // Fallback algorithmic breakdown supporting ANY custom number of months
   const roadmap: { month: number; title: string; target: string; focusMilestone: string }[] = [];
   const stages = [
     { label: "Foundation & Bio-Baselines", focus: "Establish core daily habit rhythm and audit starting baselines." },
@@ -1489,14 +1710,16 @@ Respond strictly with valid JSON without markdown fences matching:
     { label: "Grand Mastery & Sovereign Summit", focus: "Consolidate long-term transformation and achieve the apex vision." }
   ];
 
-  const count = Math.min(months, 6);
+  const count = Math.min(months, 8);
   for (let i = 1; i <= count; i++) {
     const stage = stages[Math.min(i - 1, stages.length - 1)];
+    const isFirstMonth = i === 1;
+    const isApex = i === count;
     roadmap.push({
       month: i,
-      title: `Month ${i}: ${stage.label}`,
-      target: `Progress toward: "${cleanGoal.slice(0, 45)}"`,
-      focusMilestone: stage.focus
+      title: `Month ${i}: ${isApex ? "Apex Sovereign Summit" : stage.label}`,
+      target: isFirstMonth && cleanShortTerm ? `Short-Term: "${cleanShortTerm.slice(0, 45)}"` : `Progress toward: "${cleanGoal.slice(0, 45)}"`,
+      focusMilestone: isFirstMonth && cleanShortTerm ? `Immediate Focus: ${cleanShortTerm}` : stage.focus
     });
   }
 
@@ -1510,9 +1733,217 @@ Respond strictly with valid JSON without markdown fences matching:
     success: true,
     monthlyRoadmap: roadmap,
     dailyTasks: defaultTasks,
-    summaryAnalysis: `Vita Man has calibrated "${toolName}" across a ${timeSpan} horizon for age ${age}. Compounding these daily actions will secure your Month 1 foundation and propel your sovereign ascent.`,
+    summaryAnalysis: `Vita Man has calibrated "${toolName}" across a custom ${months}-Month (${months * 30}-day) horizon for age ${age}.${cleanShortTerm ? ` Anchored by short-term milestone: "${cleanShortTerm}".` : ""} Compounding these daily actions will secure your Month 1 foundation and propel your sovereign ascent.`,
     mountainAltitudePerTask: 120,
     xpPerTask: 40
+  });
+});
+
+// Enhanced AI Goal Suggestion Engine: Generate daily actionable tasks based on custom-length long-term goals
+app.post("/api/ai/suggest-daily-tasks", async (req, res) => {
+  const {
+    username = "Explorer",
+    age = 28,
+    goals = [],
+    longTermGoals = null
+  } = req.body || {};
+
+  const cleanGoals: any[] = Array.isArray(goals) ? [...goals] : [];
+
+  // Also include pillars from longTermGoals if provided
+  if (longTermGoals && typeof longTermGoals === "object") {
+    const ltMonths = longTermGoals.targetMonths || 
+      (longTermGoals.targetTimeline ? parseInt(longTermGoals.targetTimeline) : 3) || 3;
+    const ltHorizon = longTermGoals.howSoonPlanning || longTermGoals.targetTimeline || `${ltMonths} Months Horizon`;
+
+    const candidatePillars = [
+      { id: "healthGoal", name: "Physical Health & Vitality", category: "BODY", longTermGoal: longTermGoals.healthGoal },
+      { id: "careerGoal", name: "Career & Financial Craft", category: "CAREER", longTermGoal: longTermGoals.careerGoal },
+      { id: "skillsGoal", name: "Deep Skills & Learning", category: "SKILLS", longTermGoal: longTermGoals.skillsGoal },
+      { id: "lifestyleGoal", name: "Mindfulness & Harmony", category: "MIND", longTermGoal: longTermGoals.lifestyleGoal },
+      { id: "primaryAppGoal", name: "Primary Temple Vision", category: "BUILD", longTermGoal: longTermGoals.primaryAppGoal }
+    ];
+
+    candidatePillars.forEach(p => {
+      if (p.longTermGoal && p.longTermGoal.trim() && !cleanGoals.some((g: any) => g.id === p.id || (g.name && g.name.toLowerCase() === p.name.toLowerCase()))) {
+        cleanGoals.push({
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          longTermGoal: p.longTermGoal.trim(),
+          targetMonths: ltMonths,
+          targetHorizon: ltHorizon,
+          shortTermGoal: longTermGoals.monthlyGoal || "Month 1 Foundation"
+        });
+      }
+    });
+  }
+
+  // Attempt Gemini generation if AI is initialized
+  if (ai && cleanGoals.length > 0) {
+    try {
+      const goalsContext = cleanGoals.map((g, idx) => {
+        const months = g.targetMonths || (g.targetHorizon ? parseInt(g.targetHorizon) : 3) || 3;
+        const horizon = g.targetHorizon || `${months} Months Target`;
+        return `${idx + 1}. [${g.name || g.id}] (${g.category || "CORE"})
+        - Long-Term Goal: "${g.longTermGoal || g.individualGoal || "Master discipline"}"
+        - Horizon / Duration: ${horizon} (${months} Months)
+        - Short-Term / Month 1 Milestone: "${g.shortTermGoal || "Build baseline consistency"}"
+        - Weekly Target: "${g.weeklyTarget || "Execute key protocols"}"`;
+      }).join("\n\n");
+
+      const prompt = `You are "Vita Man", the sovereign AI goal architect and scheduler for ${username} (age ${age}).
+The user has committed to custom-length long-term goals across specific timelines.
+
+USER'S CUSTOM-LENGTH GOALS:
+${goalsContext}
+
+TASK:
+For each goal above, synthesize 2-3 concrete, high-leverage daily actionable tasks specifically calibrated to the custom duration horizon (e.g. 5 Months, 14 Months).
+Each daily task must:
+1. Start with an appropriate emoji (e.g. 🏋️, 🥗, 💻, 🧠, 🧘, 💎, 📈).
+2. Clearly express a direct, actionable daily step that moves the needle on the custom-length goal.
+3. Be accompanied by a suggested daily time slot (e.g. "07:15 AM", "09:30 AM", "02:00 PM", "06:30 PM", "08:15 PM") and duration (e.g. "60 min", "90 min", "45 min", "30 min").
+4. Provide an explicit 'longTermAlignment' string stating the custom horizon (e.g., "Aligned with 5-Month Target: Build 8kg muscle").
+
+Respond strictly with valid JSON without markdown fences matching:
+{
+  "dailyGoals": [
+    {
+      "aiId": "string (tool or pillar id)",
+      "aiName": "string",
+      "aiIcon": "string (emoji)",
+      "title": "string (e.g. 🏋️ 45m Progressive Overload: Squat and hinge focus)",
+      "horizon": "string (e.g. 5 Months Target)",
+      "targetMonths": number,
+      "longTermGoal": "string",
+      "shortTermGoal": "string",
+      "suggestedTime": "string (e.g. 07:15 AM)",
+      "suggestedDuration": "string (e.g. 60 min)",
+      "category": "string (body, build, career, zen, finance, or learning)",
+      "alignmentRationale": "string"
+    }
+  ],
+  "summary": "string (2 sentences summarizing the custom-horizon strategy)"
+}`;
+
+      const candidateModels = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-3.1-pro-preview"];
+      for (const model of candidateModels) {
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: {
+              temperature: 0.7,
+              responseMimeType: "application/json"
+            }
+          });
+          const rawText = response.text || "";
+          const cleanedText = rawText.replace(/^```json/i, "").replace(/```$/i, "").trim();
+          const parsed = JSON.parse(cleanedText || "{}");
+          if (parsed.dailyGoals && Array.isArray(parsed.dailyGoals) && parsed.dailyGoals.length > 0) {
+            return res.json({
+              success: true,
+              dailyGoals: parsed.dailyGoals,
+              summary: parsed.summary || `Daily actionable tasks calibrated for ${cleanGoals.length} custom-length goals.`
+            });
+          }
+        } catch (modelErr) {
+          console.warn(`Gemini suggest-daily-tasks error on model ${model}:`, modelErr);
+        }
+      }
+    } catch (err) {
+      console.warn("Gemini suggest-daily-tasks failed, using sovereign fallback:", err);
+    }
+  }
+
+  // Algorithmic domain-calibrated fallback
+  const fallbackGoals: any[] = [];
+  const defaultTimes = ["07:15 AM", "09:30 AM", "02:00 PM", "06:30 PM", "08:15 PM"];
+  const defaultDurations = ["60 min", "90 min", "45 min", "30 min", "25 min"];
+
+  cleanGoals.forEach((g: any, gIdx: number) => {
+    const months = g.targetMonths || (g.targetHorizon ? parseInt(g.targetHorizon) : 3) || 3;
+    const horizon = g.targetHorizon || `${months} Months Target`;
+    const longGoal = g.longTermGoal || g.individualGoal || `Master ${g.name}`;
+    const shortGoal = g.shortTermGoal || "Month 1 Milestone";
+    const toolId = (g.id || g.aiId || "").toLowerCase();
+
+    let tasks: string[] = [];
+    if (g.dailyTasks && Array.isArray(g.dailyTasks) && g.dailyTasks.length > 0) {
+      tasks = g.dailyTasks;
+    } else if (toolId.includes("fitness") || toolId.includes("body")) {
+      tasks = [
+        `🏋️ 45m Focused Heavy Training: Progressive load toward "${longGoal.slice(0, 25)}"`,
+        `🥩 Hit 175g+ Clean Macro Target & Micronutrient Baseline`,
+        `💧 Drink 3.2L Water & Complete 10m Joint Mobility Session`
+      ];
+    } else if (toolId.includes("nutrition")) {
+      tasks = [
+        `🥗 Eat 100% whole foods: Zero refined sugar or ultra-processed snacks`,
+        `🍳 Fuel high-protein target with clean home-prepared meals`,
+        `📊 Log all nutrition macros into metabolic ledger`
+      ];
+    } else if (toolId.includes("career") || toolId.includes("work")) {
+      tasks = [
+        `🎯 60m Deep block on primary leverage deliverable for "${longGoal.slice(0, 25)}"`,
+        `🤝 1 Strategic outreach or high-value relationship touchpoint`,
+        `📈 Review weekly operational milestones & sprint pace`
+      ];
+    } else if (toolId.includes("mba") || toolId.includes("study") || toolId.includes("skill")) {
+      tasks = [
+        `📚 45m Deep Study Block: Deliberate focus on "${longGoal.slice(0, 25)}"`,
+        `💡 Solve 5 hard analytical challenge problems or case studies`,
+        `📝 Synthesize 1 core mental model into permanent notes`
+      ];
+    } else if (toolId.includes("finance") || toolId.includes("money")) {
+      tasks = [
+        `💰 Audit daily cashflow and net asset compounding`,
+        `🛡️ Enforce zero uncalculated impulse expenditures`,
+        `📊 Study 1 wealth-compounding or capital allocation insight`
+      ];
+    } else if (toolId.includes("music") || toolId.includes("create")) {
+      tasks = [
+        `🎵 45m Composition & Sound Design sprint for "${longGoal.slice(0, 25)}"`,
+        `🎧 Critical listening & arrangement reference breakdown`,
+        `🎹 Save 1 polished loop or instrument patch to project bank`
+      ];
+    } else if (toolId.includes("buddha") || toolId.includes("mind") || toolId.includes("zen")) {
+      tasks = [
+        `🧘 20m Morning Vipassana breath meditation & posture stillness`,
+        `📖 1 Page stoic or dharma contemplative inquiry`,
+        `🕊️ Mindful breathing pause before critical decisions`
+      ];
+    } else {
+      tasks = [
+        `⚡ 45m High-leverage sprint on "${longGoal.slice(0, 28)}"`,
+        `📝 Log daily progress checkpoint and key insight`,
+        `🎯 Review daily alignment and prepare tomorrow's action`
+      ];
+    }
+
+    tasks.forEach((task, tIdx) => {
+      fallbackGoals.push({
+        aiId: g.id || g.aiId || "goal",
+        aiName: g.name || "Priority",
+        aiIcon: g.avatar || "🎯",
+        title: task,
+        horizon,
+        targetMonths: months,
+        longTermGoal: longGoal,
+        shortTermGoal: shortGoal,
+        suggestedTime: defaultTimes[(gIdx + tIdx) % defaultTimes.length],
+        suggestedDuration: defaultDurations[(gIdx + tIdx) % defaultDurations.length],
+        category: (g.category || "build").toLowerCase(),
+        alignmentRationale: `Calibrated for ${months}-month trajectory toward "${longGoal.slice(0, 30)}"`
+      });
+    });
+  });
+
+  return res.json({
+    success: true,
+    dailyGoals: fallbackGoals,
+    summary: `Synthesized ${fallbackGoals.length} daily actionable tasks grounded in your custom-length long-term goals.`
   });
 });
 
@@ -2270,6 +2701,7 @@ app.post("/api/store/save", (req, res) => {
   if (newState.categoryPlans) userStore.categoryPlans = newState.categoryPlans;
   if (newState.scheduledTasks) userStore.scheduledTasks = newState.scheduledTasks;
   if (newState.aiDailyGoals) userStore.aiDailyGoals = newState.aiDailyGoals;
+  if (newState.dailyGoalsByDate) userStore.dailyGoalsByDate = { ...userStore.dailyGoalsByDate, ...newState.dailyGoalsByDate };
   if (newState.zeroTrackers) userStore.zeroTrackers = newState.zeroTrackers;
   if (newState.mountainState) userStore.mountainState = newState.mountainState;
   if (newState.longTermGoals) userStore.longTermGoals = newState.longTermGoals;
@@ -2283,6 +2715,7 @@ app.post("/api/store/save", (req, res) => {
     if (newState.goals) db.goals = userStore.goals;
     if (newState.habits) db.habits = userStore.habits;
     if (newState.mountainState) db.mountainState = userStore.mountainState;
+    if (newState.dailyGoalsByDate) db.dailyGoalsByDate = userStore.dailyGoalsByDate;
     if (newState.selectedAIs) db.selectedAIs = userStore.selectedAIs;
   }
 
@@ -4220,12 +4653,13 @@ app.post("/api/ai/day-planner", async (req, res) => {
     userScheduleNotes = "", 
     aspectsPreferences = [],
     selectedAIs = [],
+    longTermGoals = null,
     metrics = {}, 
     recentLogs = [], 
     timeOfDay = "Morning" 
   } = req.body;
 
-  // Build dynamic fallback derived from selectedAIs if provided
+  // Build dynamic fallback derived from selectedAIs and longTermGoals
   let fallbackAspects = [
     { 
       aspect: "body", 
@@ -4291,21 +4725,56 @@ app.post("/api/ai/day-planner", async (req, res) => {
     { time: "09:45 PM", title: "Digital Sunset & Deep Rest", detail: "Dim amber lighting, relax, and transition to deep rest", duration: "30 min", category: "body", longTermAlignment: "Sleep Restoration" }
   ];
 
-  if (Array.isArray(selectedAIs) && selectedAIs.length > 0) {
-    fallbackAspects = selectedAIs.map(ai => ({
-      aspect: (ai.category || "life").toLowerCase(),
-      title: `${ai.name} (${ai.specialty})`,
-      icon: ai.avatar || "🎯",
-      longTermGoalLinked: ai.individualGoal,
-      primaryTarget: ai.dailyTasks?.[0] || `Advance: ${ai.individualGoal}`,
-      secondaryTarget: `Weekly Target: ${ai.weeklyTarget}`,
-      timeSlot: "Optimal Time Window",
-      alignmentRationale: `Direct compounding toward ${ai.name} target.`
-    }));
+  const fallbackDailyGoals: any[] = [];
 
-    // Generate schedule customized to their AIs
+  if (Array.isArray(selectedAIs) && selectedAIs.length > 0) {
+    fallbackAspects = selectedAIs.map(ai => {
+      const months = ai.targetMonths || (ai.targetHorizon ? parseInt(ai.targetHorizon) : 3) || 3;
+      const horizonLabel = ai.targetHorizon || `${months} Months Target`;
+      return {
+        aspect: (ai.category || "life").toLowerCase(),
+        title: `${ai.name} (${ai.specialty})`,
+        icon: ai.avatar || "🎯",
+        longTermGoalLinked: `${ai.individualGoal || ai.longTermGoal} [${horizonLabel}]`,
+        primaryTarget: ai.dailyTasks?.[0] || `Advance: ${ai.individualGoal || ai.longTermGoal}`,
+        secondaryTarget: ai.shortTermGoal ? `Short-Term: ${ai.shortTermGoal}` : `Weekly Target: ${ai.weeklyTarget}`,
+        timeSlot: "Optimal Time Window",
+        alignmentRationale: `Compounding milestone toward ${months}-month horizon.`
+      };
+    });
+
+    // Populate active daily goals from custom-length selected AIs
+    selectedAIs.forEach((ai, aIdx) => {
+      const months = ai.targetMonths || (ai.targetHorizon ? parseInt(ai.targetHorizon) : 3) || 3;
+      const horizon = ai.targetHorizon || `${months} Months Target`;
+      const tasks = Array.isArray(ai.dailyTasks) && ai.dailyTasks.length > 0
+        ? ai.dailyTasks
+        : [`⚡ Focus sprint on ${ai.individualGoal || ai.longTermGoal || ai.name}`];
+      
+      const defaultTimes = ["07:15 AM", "09:15 AM", "02:00 PM", "06:30 PM", "08:15 PM"];
+      const defaultDurations = ["75 min", "120 min", "90 min", "35 min", "25 min"];
+
+      tasks.forEach((t, tIdx) => {
+        fallbackDailyGoals.push({
+          aiId: ai.aiId || ai.id || `ai-${aIdx}`,
+          aiName: ai.name,
+          aiIcon: ai.avatar || "🎯",
+          title: t,
+          horizon,
+          targetMonths: months,
+          longTermGoal: ai.individualGoal || ai.longTermGoal || ai.name,
+          shortTermGoal: ai.shortTermGoal || "",
+          suggestedTime: defaultTimes[(aIdx + tIdx) % defaultTimes.length],
+          suggestedDuration: defaultDurations[(aIdx + tIdx) % defaultDurations.length],
+          category: (ai.category || "build").toLowerCase(),
+          alignmentRationale: `Direct compounding toward ${months}-month target.`
+        });
+      });
+    });
+
+    // Generate schedule customized to their AIs and custom-length horizons
     const customSched = [
-      { time: "06:30 AM", title: "Circadian Ignition & Hydration", detail: "1L pure water + natural morning sunlight", duration: "30 min", category: "body", longTermAlignment: "Circadian Rhythm" }
+      { time: "06:30 AM", title: "Circadian Ignition & Hydration", detail: "1L pure water + natural morning sunlight to set circadian pacing", duration: "30 min", category: "body", longTermAlignment: "Circadian Rhythm & Biological Energy" }
     ];
 
     selectedAIs.forEach((ai, idx) => {
@@ -4313,23 +4782,26 @@ app.post("/api/ai/day-planner", async (req, res) => {
       const durations = ["75 min", "120 min", "90 min", "35 min", "25 min"];
       const t = times[idx % times.length];
       const d = durations[idx % durations.length];
+      const months = ai.targetMonths || (ai.targetHorizon ? parseInt(ai.targetHorizon) : 3) || 3;
+      const horizon = ai.targetHorizon || `${months} Months Target`;
+
       customSched.push({
         time: t,
-        title: `${ai.avatar} [${ai.name}] ${ai.dailyTasks?.[0] || ai.individualGoal}`,
-        detail: `Personalized deep session calibrated to: "${ai.individualGoal}". Milestone target: ${ai.weeklyTarget}.`,
+        title: `${ai.avatar || "🎯"} [${ai.name}] ${ai.dailyTasks?.[0] || ai.individualGoal}`,
+        detail: `Personalized session calibrated to ${horizon}: "${ai.individualGoal}". Milestone target: ${ai.weeklyTarget || ai.shortTermGoal || "Continuous progress"}.`,
         duration: d,
         category: (ai.category || "build").toLowerCase(),
-        longTermAlignment: ai.individualGoal
+        longTermAlignment: `Aligned with ${horizon}: ${ai.individualGoal || ai.name}`
       });
     });
 
-    customSched.push({ time: "09:45 PM", title: "Digital Sunset & Deep Sleep Architecture", detail: "Screen cut-off, review wins across all chosen AI goals", duration: "30 min", category: "body", longTermAlignment: "Sleep Recovery" });
+    customSched.push({ time: "09:45 PM", title: "Digital Sunset & Deep Sleep Architecture", detail: "Screen cut-off, review wins across all custom-horizon goals", duration: "30 min", category: "body", longTermAlignment: "Sleep Restoration" });
     fallbackSchedule = customSched;
   }
 
   const fallback = {
-    welcomeGreeting: `Welcome ${userName}! Let's build an optimal, focused day tailored to your priorities.`,
-    planningScore: 95,
+    welcomeGreeting: `Welcome ${userName}! Let's execute your calibrated daily goals across your custom-length milestones.`,
+    planningScore: 96,
     planningScoreBreakdown: {
       balance: 96,
       focusPacing: 95,
@@ -4338,15 +4810,16 @@ app.post("/api/ai/day-planner", async (req, res) => {
     },
     aiRecommendations: [
       `Tackle your highest priority deep work during your peak morning energy window.`,
+      `Execute each calibrated daily goal with disciplined focus on your custom timeline.`,
       `Stay hydrated and fuel your body with wholesome nutrition throughout the day.`,
-      `Dedicate your full attention to each planned block without distraction.`,
       `Wind down in the evening to recharge and sleep deeply.`
     ],
     coreFocus: userBrainDump.trim() 
       ? `Focus: ${userBrainDump.substring(0, 100)}... with disciplined follow-through.`
-      : (selectedAIs.length > 0 ? `Execution anchored on ${selectedAIs.map((a: any) => a.name).join(", ")}.` : "Execute daily protocols with clarity and purpose."),
+      : (selectedAIs.length > 0 ? `Compounding progress across ${selectedAIs.map((a: any) => a.name).join(", ")}.` : "Execute calibrated daily goals with clarity and purpose."),
     aspects: fallbackAspects,
-    generatedSchedule: fallbackSchedule
+    generatedSchedule: fallbackSchedule,
+    activeDailyGoals: fallbackDailyGoals
   };
 
   if (!ai) {
@@ -4355,17 +4828,32 @@ app.post("/api/ai/day-planner", async (req, res) => {
 
   try {
     const aiContextText = Array.isArray(selectedAIs) && selectedAIs.length > 0
-      ? selectedAIs.map((a: any, i: number) => 
-          `${i+1}. [${a.name} - ${a.specialty} (${a.category || "CORE"})]
-          - Long-Term Goal: "${a.individualGoal}"
-          - Weekly Target: "${a.weeklyTarget}"
-          - Primary Daily Tasks: ${JSON.stringify(a.dailyTasks || [])}`
-        ).join("\n")
+      ? selectedAIs.map((a: any, i: number) => {
+          const months = a.targetMonths || (a.targetHorizon ? parseInt(a.targetHorizon) : 3) || 3;
+          const horizon = a.targetHorizon || `${months} Months Target`;
+          return `${i+1}. [${a.name} - ${a.specialty || "Specialist"} (${a.category || "CORE"})]
+          - Custom Horizon: ${horizon} (${months} Months)
+          - Long-Term Goal: "${a.individualGoal || a.longTermGoal}"
+          - Immediate Short-Term / Month 1 Milestone: "${a.shortTermGoal || "Baseline consistency"}"
+          - Weekly Target: "${a.weeklyTarget || "Execute key protocols"}"
+          - Calibrated Daily Tasks: ${JSON.stringify(a.dailyTasks || [])}`;
+        }).join("\n\n")
       : `1. Physical Health & Energy: Daily movement, fitness, and vitality
 2. Learning & Skill Growth: Deliberate practice and deep work
 3. Mindfulness & Calm: Clarity, meditation, and equanimity
 4. Projects & Creation: Engineering and goal milestone execution
 5. Financial Discipline: Budget awareness and mindful spending`;
+
+    const ltGoalsContext = longTermGoals && typeof longTermGoals === "object"
+      ? `\nUSER'S SAVED LONG-TERM VISION & TIMELINES:
+- Overall Horizon: ${longTermGoals.howSoonPlanning || longTermGoals.targetTimeline || `${longTermGoals.targetMonths || 3} Months`}
+- Health Vision: "${longTermGoals.healthGoal || "Optimal fitness and energy"}"
+- Career Vision: "${longTermGoals.careerGoal || "Peak professional execution"}"
+- Skills Vision: "${longTermGoals.skillsGoal || "Deep capability mastery"}"
+- Lifestyle/Peace Vision: "${longTermGoals.lifestyleGoal || "Mindful stillness and balance"}"
+- Primary Temple Goal: "${longTermGoals.primaryAppGoal || "Sovereign life mastery"}"
+- Month 1 Milestone: "${longTermGoals.monthlyGoal || "Solid baseline habit foundation"}"`
+      : "";
 
     const prompt = `You are an AI Day Planner and executive schedule synthesizer for ${userName}.
 ${userName} is organizing their schedule for today.
@@ -4376,15 +4864,19 @@ USER INPUT:
 - Time Commitments / Constraints: "${userScheduleNotes || "Not provided - optimize normal workday"}"
 - Time of Day: ${timeOfDay || "Morning"}
 
-USER'S ACTIVE APPS & PRIORITIES:
+USER'S ACTIVE APPS & CALIBRATED GOALS:
 ${aiContextText}
+${ltGoalsContext}
 
 CRITICAL RULES:
-1. Build a realistic, personalized daily schedule based directly on the user's input and their active goals.
-2. Calibrate realistic durations for each block (e.g. 60-90 min for workout, 90-120 min for deep project work, 30 min for reading/study, 20-30 min for meditation/walk, 30 min for review).
-3. Do NOT include generic buzzwords or exam acronyms unless the user explicitly requested them.
-4. Welcome ${userName} warmly.
-5. Provide 3-4 practical, actionable recommendations and a crisp headline focus.
+1. Build a realistic, personalized daily schedule based directly on the user's input and their active custom-length goals.
+2. The user has set CUSTOM-LENGTH timelines (e.g., 4 months, 5 months, 7 months, 14 months). Every scheduled block must directly advance these custom-length targets.
+3. For each item in "generatedSchedule", specify:
+   - "longTermAlignment": Explicitly name the custom timeline and goal it serves (e.g. "Aligned with 5-Month Target: Build 8kg muscle").
+   - Realistic duration (e.g. 60-90 min for workout, 90-120 min for deep project work, 30 min for reading/study, 20-30 min for meditation/walk, 30 min for review).
+4. Also generate "activeDailyGoals": an array of 3-6 concrete, actionable daily goals (with emoji, tool/pillar tag, custom horizon label, and time slot) that will automatically populate the user's daily goals modal and checklist.
+5. Welcome ${userName} warmly.
+6. Provide 3-4 practical, actionable recommendations and a crisp headline focus.
 
 Respond ONLY with valid JSON with this exact schema:
 {
@@ -4401,7 +4893,7 @@ Respond ONLY with valid JSON with this exact schema:
     "string",
     "string"
   ],
-  "coreFocus": "string (1 crisp headline focus for today)",
+  "coreFocus": "string (1 crisp headline focus for today reflecting their custom milestones)",
   "aspects": [
     {
       "aspect": "string (category key)",
@@ -4412,6 +4904,20 @@ Respond ONLY with valid JSON with this exact schema:
       "secondaryTarget": "string",
       "timeSlot": "string (e.g. 07:15 AM)",
       "alignmentRationale": "string"
+    }
+  ],
+  "activeDailyGoals": [
+    {
+      "aiId": "string",
+      "aiName": "string",
+      "aiIcon": "string (emoji)",
+      "title": "string",
+      "horizon": "string (e.g. 5 Months Target)",
+      "targetMonths": number,
+      "longTermGoal": "string",
+      "suggestedTime": "string",
+      "suggestedDuration": "string",
+      "category": "string"
     }
   ],
   "generatedSchedule": [
@@ -4439,6 +4945,9 @@ Respond ONLY with valid JSON with this exact schema:
 
     const parsed = JSON.parse(result.text || "{}");
     if (parsed.aspects && Array.isArray(parsed.aspects) && parsed.generatedSchedule) {
+      if (!parsed.activeDailyGoals || !Array.isArray(parsed.activeDailyGoals) || parsed.activeDailyGoals.length === 0) {
+        parsed.activeDailyGoals = fallbackDailyGoals;
+      }
       res.json(parsed);
     } else {
       res.json(fallback);

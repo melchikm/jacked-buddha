@@ -6,10 +6,12 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import AtmosphericBackdrop from "./AtmosphericBackdrop";
 import VitaGoalOnboardingModal from "./VitaGoalOnboardingModal";
+import { VitaLifeLogo } from "./VitaLifeLogo";
 import { UserLongTermGoals } from "../types";
 import { sound } from "../utils/soundEngine";
 import { signInWithGoogle, syncUserProfile, getUserGoalsFromFirestore, getUserProfileFromFirestore } from "../lib/firebase";
 import { offlineQueue } from "../lib/offlineQueue";
+import { setAuthToken } from "../utils/apiAuth";
 
 interface LoginProps {
   onLoginSuccess: (user: {
@@ -191,6 +193,10 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
         return;
       }
 
+      if (data.token) {
+        setAuthToken(data.token);
+      }
+
       await syncUserProfile({
         uid: fbUser.uid,
         name: chosenName,
@@ -286,6 +292,10 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
         return;
       }
 
+      if (data.token) {
+        setAuthToken(data.token);
+      }
+
       const cleanKey = (data.user?.username || targetUser).toLowerCase().replace(/[^a-z0-9]/g, "");
       const hasPriorSession = typeof window !== "undefined" && (
         localStorage.getItem(`vita-user-welcomed-${cleanKey}`) === "true" ||
@@ -349,9 +359,9 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
             <Compass className="w-5 h-5 text-amber-400 animate-spin-slow" />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono">Universal Life OS</div>
+            <div className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono">Universal Life Architecture</div>
             <div className="text-xs font-bold text-white flex items-center gap-1.5">
-              <span>Vita System Online</span>
+              <span>Vita Life Online</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[10px] text-amber-400/90 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20 font-mono flex items-center gap-1">
                 <Cloud className="w-3 h-3 text-amber-400" /> Firebase
@@ -378,15 +388,16 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
 
       {/* MIDDLE: Universal Login & Calibration Card */}
       <div className="w-full max-w-xl my-auto z-10 flex flex-col items-center gap-6 py-6">
-        {/* Brand Headline */}
+        {/* Brand Headline with Official Mountain Ascent Logo */}
         <div className="w-full text-center">
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8 }}
-            className="flex items-center justify-center gap-2 mb-2"
+            className="flex flex-col items-center justify-center mb-3"
           >
-            <span className="text-xs font-bold uppercase tracking-[0.25em] text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+            <VitaLifeLogo size={84} withBackground={true} withGlow={true} className="rounded-3xl shadow-2xl shadow-emerald-950/90 border border-emerald-500/20 mb-3" />
+            <span className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-400 bg-emerald-500/10 px-3.5 py-1 rounded-full border border-emerald-500/20">
               Personal AI Life Coach
             </span>
           </motion.div>
@@ -397,7 +408,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
             transition={{ duration: 0.9, delay: 0.1 }}
             className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight select-none"
           >
-            VITA <span className="text-amber-400 font-serif italic font-normal">COACH</span>
+            VITA <span className="text-emerald-400 font-serif italic font-normal">LIFE</span>
           </motion.h1>
           
           <motion.p 
@@ -417,14 +428,14 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="w-full max-w-md bg-[#0e1017]/85 backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 relative shadow-2xl overflow-hidden"
         >
-          <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
+          <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
 
           <div className="text-center mb-6">
             <span className="text-[10px] tracking-[0.2em] text-zinc-400 uppercase font-semibold block">
               SOVEREIGN AUTHENTICATION
             </span>
             <span className="text-xl sm:text-2xl text-white font-bold block mt-1 tracking-tight">
-              Sign In to Vita OS
+              Sign In to Vita Life
             </span>
           </div>
 
@@ -534,7 +545,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginProps) {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-black" />
-                  <span>Sign In to Vita OS</span>
+                  <span>Sign In to Vita Life</span>
                   <ArrowRight className="w-4 h-4 text-black" />
                 </>
               )}

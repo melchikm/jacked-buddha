@@ -184,6 +184,7 @@ export const createDefaultZeroDBState = (
     plansByDate: {},
     scheduledTasks: [],
     aiDailyGoals: [],
+    dailyGoalsByDate: {},
     zeroTrackers: [
       { id: "zt-1", title: "Alcohol & intoxicating beverages", currentValue: 0, unit: "units", category: "substances", reason: "Protects REM sleep & dopaminergic baseline.", targetValue: 0 },
       { id: "zt-2", title: "Processed food & refined sugars", currentValue: 0, unit: "servings", category: "nutrition", reason: "Preserves stable glucose & cellular vitality.", targetValue: 0 },

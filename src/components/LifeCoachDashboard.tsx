@@ -534,7 +534,7 @@ export default function LifeCoachDashboard({
 
         {/* Footer */}
         <div className="text-center text-xs text-zinc-500 pt-4">
-          Vita OS · Built with Gemini AI Intelligence
+          Vita Life · Built with Gemini AI Intelligence
         </div>
       </div>
     );

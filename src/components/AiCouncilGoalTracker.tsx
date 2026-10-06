@@ -600,13 +600,13 @@ export default function AiCouncilGoalTracker({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pt-2">
-          {selectedAIs.map((ai) => {
+          {selectedAIs.map((ai, idx) => {
             const dailyTasks = ai.dailyTasks && ai.dailyTasks.length > 0 ? ai.dailyTasks : [`Advance target: ${ai.individualGoal}`];
             const monthlyMilestone = ai.monthlyRoadmap?.[0]?.focusMilestone || "Establish core daily habit rhythm and audit starting baselines.";
 
             return (
               <div
-                key={ai.aiId}
+                key={`${ai.aiId}-${idx}`}
                 id={`ai-app-card-${ai.aiId}`}
                 className={`p-4 rounded-2xl border flex flex-col justify-between space-y-3.5 transition-all relative ${
                   theme === "bright"

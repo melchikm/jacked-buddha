@@ -562,7 +562,7 @@ export default function VitaGoalOnboardingModal({
                         key={t.id}
                         type="button"
                         onClick={() => { setHowSoonPlanning(t.title); sound.playSubtleClick(); }}
-                        className={`text-left p-3 rounded-xl border transition ${
+                        className={`text-left p-3 rounded-xl border transition cursor-pointer ${
                           isSelected
                             ? "bg-amber-500/15 border-amber-400/60 shadow-md"
                             : "bg-black/30 border-white/5 hover:border-white/20"
@@ -578,6 +578,38 @@ export default function VitaGoalOnboardingModal({
                       </button>
                     );
                   })}
+                </div>
+
+                {/* Custom Month Input Field */}
+                <div className="p-3 bg-black/40 border border-white/10 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-zinc-300">
+                      Or define a custom duration (any number of months):
+                    </span>
+                    {howSoonPlanning.includes("Custom") && (
+                      <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                        Active Selection
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      placeholder="e.g. 5"
+                      onChange={(e) => {
+                        const parsed = parseInt(e.target.value, 10);
+                        if (!isNaN(parsed) && parsed > 0) {
+                          setHowSoonPlanning(`${parsed} Months (Custom Target Horizon)`);
+                        }
+                      }}
+                      className="w-24 bg-white/5 border border-white/10 rounded-lg py-1.5 px-3 text-sm text-amber-400 font-mono font-bold focus:outline-none focus:border-amber-400"
+                    />
+                    <span className="text-xs text-zinc-400">
+                      months (e.g., 4, 5, 7, 9, 14 months)
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -834,7 +866,7 @@ export default function VitaGoalOnboardingModal({
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>Confirm & Launch My Vita OS</span>
+                      <span>Confirm & Launch My Vita Life</span>
                     </>
                   )}
                 </button>

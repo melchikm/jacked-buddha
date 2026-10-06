@@ -13,7 +13,7 @@ export interface MissionDashboardProps {
   user: UserProfile | null;
   theme: "bright" | "dark";
   onUpdateState: (newState: Partial<DBState>) => void;
-  onOpenAiPreferences?: () => void;
+  onOpenAiPreferences?: (step?: 0 | 1 | 2 | 3 | 4) => void;
   onOpenDailyPlanner?: () => void;
   onNavigateToView?: (view: string) => void;
 }
@@ -61,6 +61,7 @@ export default function MissionDashboard({
   theme,
   onUpdateState,
   onOpenAiPreferences,
+  onOpenDailyPlanner,
   onNavigateToView
 }: MissionDashboardProps) {
   // Reference date (defaults to current today)
@@ -751,20 +752,39 @@ export default function MissionDashboard({
 
           <div className="flex items-center gap-2">
             {onOpenAiPreferences && (
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playSubtleClick();
-                  onOpenAiPreferences();
-                }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
-                  theme === "bright" 
-                    ? "bg-stone-100 hover:bg-stone-200 border-stone-300 text-stone-800" 
-                    : "bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300"
-                }`}
-              >
-                ⚙️ Choose Apps
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playSubtleClick();
+                    onOpenAiPreferences(2);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                    theme === "bright" 
+                      ? "bg-stone-100 hover:bg-stone-200 border-stone-300 text-stone-800" 
+                      : "bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300"
+                  }`}
+                  title="Configure and select required apps"
+                >
+                  ⚙️ Choose Apps
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playTingsha();
+                    onOpenAiPreferences(3);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                    theme === "bright" 
+                      ? "bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-900" 
+                      : "bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/30 text-amber-300"
+                  }`}
+                  title="Calibrate short-term and long-term goals with custom months"
+                >
+                  🎯 Calibrate Goals
+                </button>
+              </>
             )}
 
             <button
@@ -815,8 +835,8 @@ export default function MissionDashboard({
                     theme === "bright" ? "bg-white border-stone-300 text-stone-900" : "bg-black/30 border-white/10 text-white"
                   }`}
                 >
-                  {activeSelectedAIs.map(ai => (
-                    <option key={ai.aiId} value={ai.aiId}>
+                  {activeSelectedAIs.map((ai, idx) => (
+                    <option key={`${ai.aiId}-${idx}`} value={ai.aiId}>
                       {ai.avatar} {ai.name} ({ai.category || "Core"})
                     </option>
                   ))}
@@ -859,11 +879,11 @@ export default function MissionDashboard({
 
         {/* Goals Grid */}
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {activeAppGoals.map((goal) => {
+          {activeAppGoals.map((goal, idx) => {
             const cat = getCategoryInfo(goal.category || goal.aiId);
             return (
               <div
-                key={goal.id}
+                key={`mission-active-goal-${goal.id}-${idx}`}
                 className={`p-4 rounded-2xl border transition-all space-y-3 ${
                   goal.isCompleted
                     ? "bg-emerald-500/10 border-emerald-500/30"
@@ -958,14 +978,14 @@ export default function MissionDashboard({
           })}
 
           {/* Custom Short-Term Goals */}
-          {customShortTermGoals.map((goal) => {
+          {customShortTermGoals.map((goal, idx) => {
             const cat = getCategoryInfo(goal.module);
             const currentPct = goal.progress ?? (goal.status === "Completed" ? 100 : 25);
             const isCompleted = currentPct >= 100 || goal.status === "Completed";
 
             return (
               <div
-                key={goal.id}
+                key={`mission-custom-goal-${goal.id}-${idx}`}
                 className={`p-4 rounded-2xl border transition-all space-y-3 ${
                   isCompleted
                     ? "bg-emerald-500/10 border-emerald-500/30"
@@ -1337,8 +1357,8 @@ export default function MissionDashboard({
                     theme === "bright" ? "bg-white border-stone-300 text-stone-900" : "bg-black/30 border-white/10 text-white"
                   }`}
                 >
-                  {activeSelectedAIs.map(ai => (
-                    <option key={ai.aiId} value={ai.category || ai.aiId}>
+                  {activeSelectedAIs.map((ai, idx) => (
+                    <option key={`${ai.aiId}-${ai.category || "cat"}-${idx}`} value={ai.category || ai.aiId}>
                       {ai.avatar} {ai.name} ({ai.category || "Core"})
                     </option>
                   ))}

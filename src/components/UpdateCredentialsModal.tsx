@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { UserProfile } from "../types";
 import { sound } from "../utils/soundEngine";
 import { syncUserProfile } from "../lib/firebase";
+import { getAuthHeaders, setAuthToken } from "../utils/apiAuth";
 
 interface UpdateCredentialsModalProps {
   isOpen: boolean;
@@ -99,7 +100,7 @@ export default function UpdateCredentialsModal({
 
       const res = await fetch("/api/user/update-credentials", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify(payload)
       });
 
@@ -110,6 +111,10 @@ export default function UpdateCredentialsModal({
         sound.playErrorChord();
         setIsLoading(false);
         return;
+      }
+
+      if (data.token) {
+        setAuthToken(data.token);
       }
 
       // Update Firestore if linked
